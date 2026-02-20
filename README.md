@@ -2,13 +2,13 @@
 
 A visually rich, interactive portfolio website built with **Three.js** and vanilla JavaScript. Projects are presented as 3D orbs in a dynamic scene with constellation lines, particle effects, parallax motion, and post-processing — all running in the browser with zero build tools.
 
-<img width="1866" height="896" alt="Screenshot 2026-02-20 194025" src="https://github.com/user-attachments/assets/c598966e-11e2-4e26-9aa6-176f8696078c" />
-
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat&logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat&logo=css3&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=black)
 ![Three.js](https://img.shields.io/badge/Three.js-000000?style=flat&logo=threedotjs&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
+
+<img width="1877" height="886" alt="Screenshot 2026-02-20 194153" src="https://github.com/user-attachments/assets/1a0055ae-855f-452d-a68b-a52557827677" />
 
 ---
 
