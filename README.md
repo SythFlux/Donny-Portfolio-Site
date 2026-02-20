@@ -142,7 +142,8 @@ Orb positions in 3D space are set in the `ORB_ORIGINS` array (one `[x, y, z]` pe
 
 - **Dark/Light mode** is toggled via the header switch and managed in `js/darkmode.js`.
 - **Accent colors** are applied through CSS custom properties. Add new swatches in `index.html` and register them in `js/darkmode.js`.
-<img width="1866" height="896" alt="Screenshot 2026-02-20 194025" src="https://github.com/user-attachments/assets/e891763c-497d-4b78-be92-b61811563906" />
+<img width="1896" height="900" alt="Screenshot 2026-02-20 194524" src="https://github.com/user-attachments/assets/ea9b3b8a-c910-4e59-be05-62338012ac40" />
+
 
 ---
 
