@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Donny Vo — Portfolio</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- Browser-style tab bar -->
+  <div id="tab-bar">
+    <button class="tab active" data-tab="portfolio">
+      <span class="tab-icon">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.2"/><circle cx="7" cy="7" r="2" fill="currentColor"/></svg>
+      </span>
+      <span class="tab-label">Portfolio</span>
+      <span class="tab-dot"></span>
+    </button>
+    <button class="tab" data-tab="contact">
+      <span class="tab-icon">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="3" width="11" height="8" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M2 4l5 3.5L12 4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+      </span>
+      <span class="tab-label">Contact</span>
+      <span class="tab-dot"></span>
+    </button>
+  </div>
+
+  <!-- Transition overlay — diagonal bar wipe -->
+  <div id="page-transition">
+    <div class="t-bar"></div>
+    <div class="t-bar"></div>
+    <div class="t-bar"></div>
+    <div class="t-bar"></div>
+    <div class="t-bar"></div>
+  </div>
+
+  <!-- ═══ PAGE: PORTFOLIO ═══ -->
+  <div id="page-portfolio" class="page active">
+
+  <!-- Header -->
+  <div id="header">
+    <h1>Donny Vo<span>Portfolio</span></h1>
+    <div class="header-right">
+      <button id="dark-toggle" class="theme-toggle">
+        <span class="toggle-track">
+          <span class="toggle-label toggle-light">Light</span>
+          <span class="toggle-label toggle-dark">Dark</span>
+          <span class="toggle-thumb"></span>
+        </span>
+      </button>
+      <div class="color-picker" id="color-picker">
+        <button class="color-swatch active" data-color="default" title="Default"><span style="background:#5588cc"></span></button>
+        <button class="color-swatch" data-color="blue" title="Ocean Blue"><span style="background:#2266ff"></span></button>
+        <button class="color-swatch" data-color="green" title="NVIDIA Green"><span style="background:#76b900"></span></button>
+        <button class="color-swatch" data-color="purple" title="Purple"><span style="background:#8844ee"></span></button>
+        <button class="color-swatch" data-color="cyan" title="Cyan"><span style="background:#00cccc"></span></button>
+        <button class="color-swatch" data-color="orange" title="Orange"><span style="background:#ee6622"></span></button>
+        <button class="color-swatch" data-color="pink" title="Pink"><span style="background:#dd4488"></span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Side Nav (populated by js/nav.js) -->
+  <div id="side-nav"></div>
+
+  <!-- Hover Label -->
+  <div id="orb-label"></div>
+
+  <!-- Bottom Hint -->
+  <div id="hover-hint">Click an orb to explore &nbsp;·&nbsp; Drag to orbit &nbsp;·&nbsp; Right‑click drag to pan &nbsp;·&nbsp; Scroll to zoom</div>
+
+  <!-- Terminal overlay -->
+  <div id="terminal-overlay"></div>
+
+  <!-- HUD overlay canvas -->
+  <canvas id="hud-canvas"></canvas>
+
+
+  <!-- Detail Panel -->
+  <div id="detail-panel">
+    <!-- Accent edge glow -->
+    <div class="panel-accent-edge"></div>
+
+    <div class="panel-header">
+      <button id="detail-prev" class="panel-nav" title="Previous project">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3L3 8l5 5M13 3l-5 5 5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="panel-counter" id="panel-counter">01 / 07</span>
+      <button id="detail-close" title="Close">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      </button>
+      <button id="detail-next" class="panel-nav" title="Next project">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 13l5-5-5-5M3 13l5-5-5-5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <div class="detail-content">
+      <div class="detail-tag" id="d-tag"></div>
+      <div class="detail-title" id="d-title"></div>
+      <div class="detail-meta" id="d-meta"></div>
+      <!-- Image inserted dynamically by panel.js -->
+      <div class="detail-body" id="d-body"></div>
+    </div>
+
+    <!-- Decorative corner accents -->
+    <div class="panel-corner panel-corner-tl"></div>
+    <div class="panel-corner panel-corner-br"></div>
+  </div>
+
+  </div><!-- /page-portfolio -->
+
+  <!-- ═══ PAGE: CONTACT ═══ -->
+  <div id="page-contact" class="page">
+    <!-- Interactive particle background (drawn by js/helix.js) -->
+    <canvas id="helix-canvas"></canvas>
+
+    <div class="contact-scene">
+
+      <!-- Floating title cluster -->
+      <div class="ct-hero">
+        <div class="ct-tag">// ESTABLISH_CONNECTION</div>
+        <h2 class="ct-title">
+          <span class="ct-title-line" data-char="G">G</span><span class="ct-title-line" data-char="e">e</span><span class="ct-title-line" data-char="t">t</span>
+          <span class="ct-title-space">&nbsp;</span>
+          <span class="ct-title-line" data-char="I">I</span><span class="ct-title-line" data-char="n">n</span>
+          <span class="ct-title-space">&nbsp;</span>
+          <span class="ct-title-line" data-char="T">T</span><span class="ct-title-line" data-char="o">o</span><span class="ct-title-line" data-char="u">u</span><span class="ct-title-line" data-char="c">c</span><span class="ct-title-line" data-char="h">h</span>
+        </h2>
+        <p class="ct-sub">Available for freelance work, collaborations, and full-time opportunities.</p>
+      </div>
+
+      <!-- Floating cloud info nodes -->
+      <div class="ct-nodes">
+
+        <div class="ct-node" data-node="email">
+          <div class="ct-node-orb"></div>
+          <div class="ct-node-content">
+            <div class="ct-node-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 6l10 7 10-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </div>
+            <div class="ct-node-label">EMAIL</div>
+            <a href="mailto:donny@example.com" class="ct-node-val">donny@example.com</a>
+          </div>
+          <div class="ct-node-ring"></div>
+          <div class="ct-node-dots"></div>
+        </div>
+
+        <div class="ct-node" data-node="linkedin">
+          <div class="ct-node-orb"></div>
+          <div class="ct-node-content">
+            <div class="ct-node-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="9" width="4" height="12" stroke="currentColor" stroke-width="1.5"/><circle cx="4" cy="4" r="2" stroke="currentColor" stroke-width="1.5"/></svg>
+            </div>
+            <div class="ct-node-label">LINKEDIN</div>
+            <a href="https://linkedin.com" target="_blank" class="ct-node-val">linkedin.com/in/donnyvo</a>
+          </div>
+          <div class="ct-node-ring"></div>
+          <div class="ct-node-dots"></div>
+        </div>
+
+        <div class="ct-node" data-node="github">
+          <div class="ct-node-orb"></div>
+          <div class="ct-node-content">
+            <div class="ct-node-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="ct-node-label">GITHUB</div>
+            <a href="https://github.com" target="_blank" class="ct-node-val">github.com/donnyvo</a>
+          </div>
+          <div class="ct-node-ring"></div>
+          <div class="ct-node-dots"></div>
+        </div>
+
+        <div class="ct-node" data-node="location">
+          <div class="ct-node-orb"></div>
+          <div class="ct-node-content">
+            <div class="ct-node-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="1.5"/></svg>
+            </div>
+            <div class="ct-node-label">LOCATION</div>
+            <span class="ct-node-val">San Francisco, CA</span>
+          </div>
+          <div class="ct-node-ring"></div>
+          <div class="ct-node-dots"></div>
+        </div>
+
+      </div>
+
+      <!-- Message terminal — floating cloud form -->
+      <div class="ct-terminal">
+        <div class="ct-terminal-header">
+          <div class="ct-terminal-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <span class="ct-terminal-title">// DIRECT_MESSAGE</span>
+          <div class="ct-terminal-status">
+            <span class="ct-status-dot"></span> ONLINE
+          </div>
+        </div>
+        <form id="contact-form" class="ct-form" onsubmit="return false;">
+          <div class="ct-field" data-field="name">
+            <label><span class="ct-field-prefix">&gt;</span> NAME</label>
+            <input type="text" placeholder="Enter your identity..." autocomplete="name" />
+            <div class="ct-field-line"></div>
+          </div>
+          <div class="ct-field" data-field="email">
+            <label><span class="ct-field-prefix">&gt;</span> EMAIL</label>
+            <input type="email" placeholder="Your communication channel..." autocomplete="email" />
+            <div class="ct-field-line"></div>
+          </div>
+          <div class="ct-field ct-field-full" data-field="message">
+            <label><span class="ct-field-prefix">&gt;</span> MESSAGE</label>
+            <textarea rows="4" placeholder="Transmit your message..."></textarea>
+            <div class="ct-field-line"></div>
+          </div>
+          <button type="submit" class="ct-submit">
+            <span class="ct-submit-text">TRANSMIT</span>
+            <span class="ct-submit-icon">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M2 14l12-6L2 2v4.5L10 8 2 9.5V14z" fill="currentColor"/></svg>
+            </span>
+            <span class="ct-submit-particles"></span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Footer -->
+      <div class="ct-footer">
+        <span>&copy; 2026 Donny Vo &mdash; ALL_RIGHTS_RESERVED</span>
+      </div>
+
+    </div>
+  </div><!-- /page-contact -->
+
+  <!-- Custom cursor (body-level so it works on all pages) -->
+  <div id="cursor-dot"></div>
+  <div id="cursor-ring"></div>
+
+  <!-- Three.js import map -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+    }
+  }
+  </script>
+
+  <!-- App entry point -->
+  <script type="module" src="js/main.js"></script>
+
+</body>
+</html>
