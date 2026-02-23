@@ -65,7 +65,7 @@ export const PROJECTS = [
         <li>Deployed a Docker-based web application, reducing downtime by 30%</li>
         <li>Processed 20 sensor readings/sec in Python/SQL feeding live data to the dashboard</li>
       </ul>`,
-    link: null,
+    link: "https://youtu.be/W_nESDHImNM",
   },
   {
     name: 'IP-CAR',
@@ -82,7 +82,7 @@ export const PROJECTS = [
         <li>Integrated 4+ sensors with STM32, ensuring 360° awareness and smooth navigation</li>
         <li>Led testing and tuning of autonomous behavior, optimizing embedded software for stability</li>
       </ul>`,
-    link: null,
+    link: "https://youtu.be/uYjcSJcnJmY",
   },
   {
     name: 'Education',

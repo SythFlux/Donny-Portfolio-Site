@@ -1,10 +1,13 @@
 
 services:
   portfolio:
-    build: .
+    image: nginx:alpine
     container_name: donnyvo-portfolio
     ports:
       - "80:80"
+    volumes:
+      - .:/usr/share/nginx/html:ro
+      - ./nginx:/etc/nginx/conf.d:ro
     restart: unless-stopped
   cloudflared:
      image: cloudflare/cloudflared:latest
