@@ -79,6 +79,8 @@ export const state = {
   camT: 1,
   camActive: false,
   camReturning: false,
+  // Camera animation speed multiplier (used by animation loop)
+  camSpeed: 1.1,
   // Saved position from before any panel was opened
   savedCamPos: null,
   savedCamTarget: null,
@@ -191,6 +193,72 @@ export function openProject(idx) {
   state.camActive = true;
   state.camReturning = false;
   controls.enabled = false;
+}
+
+
+/**
+ * Zoom to an orb, fade the screen to black, then navigate to `url`.
+ * Used for special projects that live on an external subpage (e.g. Taipei).
+ */
+export function redirectToUrl(idx, url) {
+  // safety
+  if (typeof url !== 'string' || !url.length) return;
+
+  // Compute world position of the orb
+  const b = blobs[idx];
+  if (!b) return;
+  const wp = new THREE.Vector3();
+  b.mesh.getWorldPosition(wp);
+
+  // Place camera very close to the orb along current view direction
+  const dir = camera.position.clone().sub(wp).normalize();
+  // Move deeper into the inner core for a tight close-up
+  const camTarget = wp.clone()
+    .add(dir.multiplyScalar(0.25))
+    .add(new THREE.Vector3(0, 0.18, 0));
+
+  // Setup camera animation state (re-using panel camera lerp system)
+  state.camFrom     = camera.position.clone();
+  state.camLookFrom = controls.target.clone();
+  state.camTo       = camTarget;
+  state.camLookTo   = wp.clone();
+  state.camT = 0;
+  // Slow the camera animation for a longer, cinematic zoom
+  const desiredCamSpeed = 0.45; // units: 1 / seconds to reach target
+  state.camSpeed = desiredCamSpeed;
+  state.camActive = true;
+  state.camReturning = false;
+  controls.enabled = false;
+
+  // Create a simple fullscreen fade overlay (if not present)
+  let overlay = document.getElementById('fade-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'fade-overlay';
+    Object.assign(overlay.style, {
+      position: 'fixed', left: '0', top: '0', right: '0', bottom: '0',
+      background: '#000', opacity: '0', pointerEvents: 'none', transition: 'opacity 0.9s ease-in', zIndex: 9999
+    });
+    document.body.appendChild(overlay);
+  }
+
+  // Start camera zoom and then fade to black
+  // After the fade completes, navigate to URL
+  // Compute camera animation duration (ms) from camSpeed
+  const animTimeMs = Math.max(300, Math.round(1000 * (1 / desiredCamSpeed)));
+
+  // Make the fade start immediately and last exactly the camera animation duration
+  overlay.style.transition = `opacity ${animTimeMs}ms ease-in`;
+  // Small timeout to ensure the transition property applied before changing opacity
+  setTimeout(() => {
+    overlay.style.pointerEvents = 'auto';
+    overlay.style.opacity = '1';
+  }, 20);
+
+  // Navigate after camera animation completes
+  setTimeout(() => {
+    window.location.href = url;
+  }, animTimeMs + 20);
 }
 
 // ── Close panel ──────────────────────────────────────────────────────

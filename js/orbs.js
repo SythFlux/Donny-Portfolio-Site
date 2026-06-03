@@ -342,7 +342,9 @@ export function createOrbs() {
 
     // Point cloud geometry
     const geo = new THREE.SphereGeometry(1, seg, seg);
-    const mat = makeDotMaterial(0x3a3a52);
+    // Use project-specific color if provided (e.g. Taipei red)
+    const projColor = (proj && proj.colorHex) ? proj.colorHex : 0x3a3a52;
+    const mat = makeDotMaterial(projColor);
 
     // Points object for visual rendering
     const points = new THREE.Points(geo, mat);
@@ -371,7 +373,9 @@ export function createOrbs() {
     group.add(coreMesh);
 
     // Dotted text label above the orb
-    const label = makeDottedLabel(proj.name.toUpperCase(), 0x88bbff, 1.8);
+    // Label colour follows orb accent when available
+    const labelColor = (proj && proj.colorHex) ? proj.colorHex : 0x88bbff;
+    const label = makeDottedLabel(proj.name.toUpperCase(), labelColor, 1.8);
     label.points.position.y = baseR + 0.9;   // float above the orb surface
     group.add(label.points);
 

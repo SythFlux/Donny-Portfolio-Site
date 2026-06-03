@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { PROJECTS }         from './config.js';
 import { blobs }            from './orbs.js';
 import { renderer, camera } from './scene.js';
-import { openProject, closePanel, state as panelState } from './panel.js';
+import { openProject, closePanel, state as panelState, redirectToUrl } from './panel.js';
 import { playHover, playClick, playClose, resumeAudio } from './sound.js';
 
 const rc    = new THREE.Raycaster();
@@ -155,7 +155,13 @@ function onClick(e) {
   }
   if (hoveredBlob) {
     playClick();
-    openProject(hoveredBlob.projectIdx);
+    const proj = PROJECTS[hoveredBlob.projectIdx];
+    // If a special redirect URL is defined on the project, run the zoom+fade redirect
+    if (proj && proj.redirectUrl) {
+      redirectToUrl(hoveredBlob.projectIdx, proj.redirectUrl);
+    } else {
+      openProject(hoveredBlob.projectIdx);
+    }
   }
 }
 

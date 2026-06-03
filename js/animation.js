@@ -201,11 +201,15 @@ function tick() {
 
   // ── Camera fly-to animation ────────────────────────────────────────
   if (panelState.camActive) {
-    panelState.camT += dt * 1.1;
+    // Use configurable camSpeed (allows slower cinematic zooms)
+    const camSpeed = (typeof panelState.camSpeed === 'number') ? panelState.camSpeed : 1.1;
+    panelState.camT += dt * camSpeed;
     if (panelState.camT >= 1) {
       panelState.camT = 1;
       panelState.camActive = false;
       if (panelState.camReturning) controls.enabled = true;
+      // Restore default cam speed
+      panelState.camSpeed = 1.1;
     }
     const e = easeIO(Math.min(panelState.camT, 1));
     camera.position.lerpVectors(panelState.camFrom, panelState.camTo, e);

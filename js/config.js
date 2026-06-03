@@ -164,15 +164,32 @@ export const PROJECTS = [
       <p></p>`,
     link: null,
   },
+  {
+    name: 'Taipei Tech minor',
+    tag: 'Taiwan · Minor Project',
+    techs: ['Embedded Systems', 'C++'],
+    image: null,
+    description: `
+      <p><strong>Taipei Tech Minor</strong><br/>
+      A Taiwan-focused minor project exploring embedded systems and hardware-software co-design.</p>
+      <p>This orb links to a dedicated Taiwan page with additional 3D content.</p>`,
+    // Special redirect: clicking this orb will perform a zoom+fade and navigate
+    redirectUrl: '/taiwan/',
+    // Visual accent for this orb (reddish to signify Taiwan)
+    colorHex: 0xff4f4f,
+    link: null,
+  },
 ];
 
 /** Starting positions for each orb in world-space */
 export const ORB_ORIGINS = [
-  [ 0.0,  5.0, -1.5],   // About Me — top centre, slightly prominent
+  [ 1.6,  6.2, -1.2],   // About Me — moved slightly up and to the right
   [-8.5,  2.0, -1.5],
   [ 8.0,  2.8,  0.8],
   [-3.0, -4.0,  2.2],
   [ 4.8, -3.8, -0.8],
   [-7.8, -1.5,  3.0],
   [ 0.8, -1.0, -3.0],
+  // Taipei Tech minor — place between TNO Internship and About Me, higher Y
+  [ -4.25, 8.2, -1.5 ],
 ];
