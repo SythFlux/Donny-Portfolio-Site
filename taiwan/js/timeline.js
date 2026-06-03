@@ -92,7 +92,7 @@ export class Timeline {
     const direction = Math.sign(event.deltaY);
     if (direction === 0) return;
 
-    this.activeIndex = Math.min(this.videoStops.length, Math.max(-1, this.activeIndex + direction));
+    this.activeIndex = Math.min(this.videoStops.length, Math.max(0, this.activeIndex + direction));
     this.commitProgress();
 
     this.locked = true;
@@ -109,7 +109,7 @@ export class Timeline {
     }
     if (event.key === 'ArrowUp' || event.key === 'PageUp') {
       event.preventDefault();
-      this.activeIndex = Math.max(-1, this.activeIndex - 1);
+      this.activeIndex = Math.max(0, this.activeIndex - 1);
       this.commitProgress();
     }
   }
