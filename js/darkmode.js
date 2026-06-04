@@ -124,9 +124,9 @@ export function applyTheme(dark) {
       b.coreMat.needsUpdate = true;
     }
 
-    // Dotted label color & blending.
-    // On the default accent, keep each label's own color (TNO blue, Siemens,
-    // Taipei red). When the user picks a theme color, labels follow that accent.
+    // Dotted label color & blending. On the default accent each label keeps its
+    // own project color (TNO blue, Taipei red, Siemens petrol); a chosen theme
+    // color overrides them.
     if (b.labelMat) {
       const labelHex = (currentAccent === 'default' && b.labelColorHex != null)
         ? b.labelColorHex : accent.wire;

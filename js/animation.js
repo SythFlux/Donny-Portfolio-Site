@@ -173,7 +173,8 @@ function tick() {
         }
       }
 
-      // Color: use the label's own color on the default accent, else follow theme.
+      // Color: each label rests in its own project color (TNO blue, Taipei red,
+      // Siemens petrol); brightens slightly on hover/focus.
       let labelBase, labelHover;
       if (accentIsDefault && b.labelColorHex != null) {
         labelBase  = new THREE.Color(b.labelColorHex);
