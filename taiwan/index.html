@@ -37,7 +37,7 @@
         <span id="mt-to-zh" class="mt-zh">西門</span>
       </div>
       <!-- Canvas-drawn metro map with animated travelling dot -->
-      <canvas id="mt-canvas" width="640" height="480" class="mt-canvas"></canvas>
+      <canvas id="mt-canvas" width="720" height="520" class="mt-canvas"></canvas>
       <div id="mt-en-label" class="mt-en-label">
         TAIPEI MAIN STATION → XIMENDING
       </div>
@@ -108,6 +108,14 @@
   <!-- Left-side station explorer (shown after explore click) -->
   <nav id="explorer-panel" class="exp-hidden" aria-label="Station Explorer"></nav>
 
+  <!-- Back to main portfolio (top-left, above the explorer) -->
+  <a id="back-portfolio" href="../" aria-label="Back to main portfolio">
+    <span class="bp-arrow">←</span><span class="bp-text">PORTFOLIO</span>
+  </a>
+
+  <!-- Current station name, floating above the 3D model -->
+  <div id="model-station-name" class="model-station-name" aria-hidden="true"></div>
+
   <!-- Explore button -->
   <div id="explore-btn">
     <span class="btn-text">探索 EXPLORE</span>
@@ -121,7 +129,13 @@
   </div>
 
   <!-- Stop info panel -->
+  <!-- Panel resize pill (sibling of the panel so fixed-positioning is viewport-relative) -->
+  <button id="sp-expand" class="sp-expand" aria-label="Enlarge panel" title="Click to enlarge">
+    <span class="sp-expand-ico">⤢</span><span class="sp-expand-txt">ENLARGE</span>
+  </button>
+
   <aside id="stop-panel" class="sp-hidden">
+    <div id="sp-decal" class="sp-decal" aria-hidden="true"></div>
     <div class="sp-header-row">
       <span id="sp-badge" class="line-badge lg">R</span>
       <div class="sp-line-info">

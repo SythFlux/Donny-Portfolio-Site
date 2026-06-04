@@ -76,13 +76,24 @@ export class CityScene {
       city:    { orbit: 0.45, drift:[-0.18,-0.04] },
     }[this.type] || { orbit: 0.4, drift:[0.12,-0.06] };
     this._s.orbit = flavour.orbit;
-    // Drifting motes (the "something moving"), seeded per scene.
-    this._s.motes = Array.from({ length: 16 }, () => ({
-      x: Math.random()*W, y: Math.random()*GY,
-      vx: flavour.drift[0]*(0.5+Math.random()),
-      vy: flavour.drift[1]*(0.5+Math.random()),
-      r: 1 + Math.random()*2.2, ph: Math.random()*Math.PI*2,
-    }));
+    // Drifting motes (kept only for the orange/mountain scene — "good as is").
+    this._s.motes = this.type === 'mountain'
+      ? Array.from({ length: 16 }, () => ({
+          x: Math.random()*W, y: Math.random()*GY,
+          vx: flavour.drift[0]*(0.5+Math.random()),
+          vy: flavour.drift[1]*(0.5+Math.random()),
+          r: 1 + Math.random()*2.2, ph: Math.random()*Math.PI*2,
+        }))
+      : [];
+
+    // ── Per-theme weather / sky effects ──────────────────────────
+    // purple → stars · blue → rain · green → wind-blown leaves · red → day/night
+    this._s.stars  = this.type === 'design'
+      ? Array.from({ length: 70 }, () => ({ x:Math.random()*W, y:Math.random()*GY*0.62, r:0.8+Math.random()*1.7, ph:Math.random()*Math.PI*2, big:Math.random()>0.82 })) : [];
+    this._s.rain   = this.type === 'village'
+      ? Array.from({ length: 110 }, () => ({ x:Math.random()*W, y:Math.random()*GY, len:8+Math.random()*12, sp:7+Math.random()*6 })) : [];
+    this._s.leaves = this.type === 'runway'
+      ? Array.from({ length: 26 }, () => ({ x:Math.random()*W, y:Math.random()*GY, vx:0.5+Math.random()*0.9, vy:0.45+Math.random()*0.7, rot:Math.random()*Math.PI*2, spin:(Math.random()-0.5)*0.08, size:4+Math.random()*4, ph:Math.random()*Math.PI*2 })) : [];
 
     if (this.type === 'design') {
       this._s.blocks = [
@@ -210,6 +221,62 @@ export class CityScene {
       ctx.fillStyle = this.lc + 'cc'; ctx.fill();
       ctx.strokeStyle = 'rgba(245,243,238,0.8)'; ctx.lineWidth = 1.5; ctx.stroke();
     });
+
+    this._skyFx(t);   // stars / day-night sky (behind the scene)
+  }
+
+  // Background sky effects: purple → stars, red → day/night sun-moon arc.
+  _skyFx(t) {
+    const {ctx,W,GY} = this;
+    // Stars (purple / design)
+    for (const s of this._s.stars ?? []) {
+      const tw = 0.35 + 0.65*Math.abs(Math.sin(t*1.6 + s.ph));
+      ctx.save(); ctx.globalAlpha = tw;
+      ctx.fillStyle = this.lc;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+      if (s.big) {
+        ctx.strokeStyle = this.lc; ctx.globalAlpha = tw*0.6; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(s.x-5,s.y); ctx.lineTo(s.x+5,s.y);
+        ctx.moveTo(s.x,s.y-5); ctx.lineTo(s.x,s.y+5); ctx.stroke();
+      }
+      ctx.restore();
+    }
+    // Day / night cycle (red / city)
+    if (this.type === 'city') {
+      const ph  = (t * 0.05) % 1;            // full cycle ≈ 20s
+      const ang = ph * Math.PI;               // sun rises and sets
+      const isDay = ph < 0.5;
+      ctx.save();
+      ctx.fillStyle = isDay ? `rgba(255,205,110,${(0.12*Math.sin(ang)).toFixed(3)})`
+                            : `rgba(35,45,85,${(0.18*Math.sin(ang)).toFixed(3)})`;
+      ctx.fillRect(0, 0, W, GY);
+      const sx = W*0.12 + W*0.76*ph, sy = GY*0.46 - Math.sin(ang)*GY*0.34;
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = isDay ? 'rgba(255,190,70,1)' : 'rgba(225,228,255,1)';
+      ctx.beginPath(); ctx.arc(sx, sy, isDay ? 15 : 11, 0, Math.PI*2); ctx.fill();
+      if (isDay) { ctx.globalAlpha = 0.18; ctx.beginPath(); ctx.arc(sx, sy, 26, 0, Math.PI*2); ctx.fill(); }
+      ctx.restore();
+    }
+  }
+
+  // Foreground weather: blue → rain, green → wind-blown leaves.
+  _weatherFx(t) {
+    const {ctx,W,GY} = this;
+    for (const d of this._s.rain ?? []) {
+      d.y += d.sp; if (d.y > GY) { d.y = -d.len; d.x = Math.random()*W; }
+      ctx.strokeStyle = 'rgba(70,120,175,0.35)'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(d.x-2, d.y+d.len); ctx.stroke();
+    }
+    for (const l of this._s.leaves ?? []) {
+      l.x += l.vx + Math.sin(t*1.2 + l.ph)*0.5;   // wind sway
+      l.y += l.vy; l.rot += l.spin;
+      if (l.y > GY) { l.y = -10; l.x = Math.random()*W; }
+      if (l.x > W+10) l.x = -10;
+      ctx.save(); ctx.translate(l.x, l.y); ctx.rotate(l.rot);
+      ctx.fillStyle = this.lc + 'bb';
+      ctx.beginPath(); ctx.ellipse(0, 0, l.size, l.size*0.5, 0, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
   }
 
   /* ── DESIGN ────────────────────────────────────────────────── */
@@ -406,5 +473,6 @@ export class CityScene {
       case 'mountain': this._drawMountain(t); break;
       case 'city':     this._drawCity(t);     break;
     }
+    this._weatherFx(t);   // rain / leaves in front of the scene
   }
 }

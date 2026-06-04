@@ -5,11 +5,13 @@ import { CityScene }           from './city.js';
 import { Explorer }            from './explorer.js';
 import { showMetroTransition } from './metro.js';
 import { els, initDOMRefs, updateDOM } from './dom.js';
+import { initCursor }          from './cursor.js';
 
 let city = null, isTransitioning = false, currentStopIdx = 0;
 
 document.addEventListener('DOMContentLoaded', async () => {
   initDOMRefs();
+  initCursor();
   updateDOM(0, city);
 
   const cityCanvas = document.getElementById('city-canvas');
@@ -27,10 +29,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   const exploreBtn = document.getElementById('explore-btn');
   const timelineEl = document.getElementById('timeline');
   const explorerEl = document.getElementById('explorer-panel');
+  const modelName  = document.getElementById('model-station-name');
+
+  // Side panel: click the pill to enlarge / shrink the whole panel.
+  const expandBtn = document.getElementById('sp-expand');
+  expandBtn?.addEventListener('click', () => {
+    const big = document.body.classList.toggle('panel-big');
+    expandBtn.querySelector('.sp-expand-ico').textContent = big ? '⤡' : '⤢';
+    expandBtn.querySelector('.sp-expand-txt').textContent = big ? 'SHRINK' : 'ENLARGE';
+  });
 
   exploreBtn.addEventListener('click', () => {
     heroEl?.classList.add('hidden');
     exploreBtn.classList.add('hidden');
+    modelName?.classList.add('visible');   // station name floats above the model
     timelineEl.classList.remove('hidden');
     timelineEl.classList.add('visible');
 
@@ -70,7 +82,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!viewerBlocked) viewer.setModelProgress(p);
     });
 
-    setTimeout(() => els.panel.classList.remove('sp-hidden'), 800);
+    setTimeout(() => { els.panel.classList.remove('sp-hidden'); document.body.classList.add('panel-open'); }, 800);
 
     // Timeline scroll/click → navigate, sync explorer
     timeline.onStopChange((toIdx) => {

@@ -9,6 +9,27 @@
   --sans:   'Inter', system-ui, sans-serif;
 }
 
+/* ── Custom cursor ──────────────────────────────────────────── */
+@media (pointer: fine) {
+  body.has-cursor, body.has-cursor * { cursor: none !important; }
+  .cursor-dot, .cursor-ring {
+    position: fixed; top: 0; left: 0; z-index: 9998;
+    pointer-events: none; border-radius: 50%; will-change: transform;
+  }
+  .cursor-dot {
+    width: 7px; height: 7px; margin: -3.5px;
+    background: var(--lc); transition: background 400ms ease;
+  }
+  .cursor-ring {
+    width: 32px; height: 32px; margin: -16px;
+    border: 1.5px solid var(--lc); opacity: 0.55;
+    transition: width 220ms ease, height 220ms ease, margin 220ms ease,
+                opacity 220ms ease, border-color 400ms ease;
+  }
+  body.cursor-hover .cursor-ring { width: 50px; height: 50px; margin: -25px; opacity: 0.9; }
+  body.cursor-down  .cursor-ring { width: 22px; height: 22px; margin: -11px; }
+}
+
 /* ── Reset ──────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #viewer { height: 100%; }
@@ -56,6 +77,19 @@ body::before {
 #page-fade.visible { animation: fadeOut 700ms ease-out 50ms forwards; }
 #page-fade.hidden  { opacity: 0; }
 
+/* ── Intro entrance (on load / refresh) ─────────────────────── */
+@keyframes introFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes heroRise  { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+#city-canvas { animation: introFade 1500ms ease 150ms both; }
+
+.hero-inner > * { animation: heroRise 850ms cubic-bezier(0.22,1,0.36,1) both; }
+.hero-meta-row    { animation-delay: 380ms; }
+.hero-station-row { animation-delay: 480ms; }
+.hero-title-block { animation-delay: 590ms; }
+.hero-desc        { animation-delay: 720ms; }
+.hero-data-row    { animation-delay: 850ms; }
+
 /* ── Metro line transition overlay ──────────────────────────── */
 /* A dot travels along the route map to the next station.        */
 #metro-trans {
@@ -70,7 +104,7 @@ body::before {
 #metro-trans.mt-show { opacity: 1; }
 
 .mt-inner {
-  width: min(680px, 82vw);
+  width: min(820px, 92vw);
   user-select: none;
 }
 
@@ -99,7 +133,7 @@ body::before {
   display: block;
   width: 100%;
   height: auto;
-  max-width: 540px;
+  max-width: 800px;
   margin: 0 auto;
 }
 
@@ -296,8 +330,7 @@ body::before {
   position: fixed; right: 24px; top: 50%;
   transform: translateY(-50%) translateX(0);
   width: 330px;
-  max-height: calc(100vh - 46px - 190px - 32px);
-  overflow-y: auto;
+  overflow: visible;        /* no scrollbar — panel sizes to its content */
   z-index: 115;
   background: rgba(255,255,255,0.94);
   backdrop-filter: blur(14px);
@@ -308,7 +341,94 @@ body::before {
   transition:
     transform 520ms cubic-bezier(0.22,1,0.36,1),
     opacity 380ms ease,
+    width 480ms cubic-bezier(0.16,1,0.3,1),
     border-left-color 400ms ease;
+}
+/* Enlarged panel — wider, nudged up, capped clear of the bottom timeline.
+   Centred at 42% with a cap that keeps both edges clear (HUD top, timeline bottom). */
+body.panel-big #stop-panel { width: 470px; }
+
+/* Big faint station-code decal, revealed when the panel is enlarged */
+.sp-decal {
+  position: absolute; right: 16px; bottom: 12px; z-index: 0;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 800;
+  font-size: 116px; line-height: 0.8; letter-spacing: -0.04em;
+  color: var(--lc); opacity: 0;
+  pointer-events: none; user-select: none; white-space: nowrap;
+  transition: opacity 320ms ease;
+}
+body.panel-big .sp-decal { opacity: 0.08; }
+
+/* Resize control — a captivating pulsing pill on the panel's left edge.
+   Fixed so it escapes the panel's overflow clipping and tracks its edge. */
+.sp-expand {
+  position: fixed; top: 50%; right: 354px;            /* 24px gap + 330px panel */
+  transform: translate(50%, -50%);
+  z-index: 116; cursor: pointer; overflow: hidden;
+  display: flex; align-items: center; gap: 0;
+  width: 46px; height: 46px; padding: 0; border: none; border-radius: 23px;
+  background: var(--lc); color: #fff;
+  box-shadow: 0 6px 20px -6px var(--lc);
+  opacity: 0; pointer-events: none;
+  transition: right 480ms cubic-bezier(0.16,1,0.3,1), width 300ms cubic-bezier(0.22,1,0.36,1),
+              gap 300ms, padding 300ms, opacity 320ms ease;
+  animation: spFabPulse 2.2s ease-in-out infinite;
+}
+body.panel-open .sp-expand { opacity: 1; pointer-events: auto; }
+body.panel-big  .sp-expand { right: 494px; }          /* 24 + 470 */
+.sp-expand:hover { width: 138px; gap: 9px; padding: 0 18px; animation: none; }
+.sp-expand-ico { font-size: 21px; line-height: 1; flex-shrink: 0; min-width: 46px; text-align: center; transition: min-width 300ms; }
+.sp-expand:hover .sp-expand-ico { min-width: auto; }
+.sp-expand-txt { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.14em; white-space: nowrap; opacity: 0; transition: opacity 220ms ease; }
+.sp-expand:hover .sp-expand-txt { opacity: 1; }
+@keyframes spFabPulse {
+  0%,100% { box-shadow: 0 6px 20px -6px var(--lc), 0 0 0 0 color-mix(in srgb, var(--lc) 55%, transparent); }
+  50%     { box-shadow: 0 6px 20px -6px var(--lc), 0 0 0 12px color-mix(in srgb, var(--lc) 0%, transparent); }
+}
+
+/* Back to main portfolio button (top-left, above the explorer) — themed */
+#back-portfolio {
+  position: fixed; top: 58px; left: 28px; z-index: 130;
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 10px 17px 10px 15px; text-decoration: none;
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--lc);
+  border: 1.5px solid color-mix(in srgb, var(--lc) 45%, transparent);
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--lc) 8%, rgba(245,243,238,0.85));
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px -8px var(--lc);
+  transition: color 400ms ease, border-color 250ms ease, background 250ms ease, transform 200ms ease, box-shadow 250ms ease;
+}
+#back-portfolio:hover {
+  background: var(--lc); color: #fff;
+  border-color: var(--lc);
+  transform: translateX(-3px);
+  box-shadow: 0 6px 20px -6px var(--lc);
+}
+#back-portfolio .bp-arrow { font-size: 15px; line-height: 1; transition: transform 250ms ease; }
+#back-portfolio:hover .bp-arrow { transform: translateX(-3px); }
+
+/* Station name floating above the 3D model */
+.model-station-name {
+  position: fixed; top: 12vh; left: 50%;
+  transform: translateX(-50%) translateY(-10px);
+  z-index: 92; pointer-events: none; text-align: center;
+  opacity: 0; transition: opacity 520ms ease, transform 520ms ease;
+}
+.model-station-name.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+.model-station-name .msn-zh {
+  display: block;
+  font-family: 'Noto Sans SC','Microsoft YaHei',sans-serif;
+  font-size: clamp(30px, 4vw, 52px); font-weight: 900; line-height: 1;
+  letter-spacing: 0.05em; color: inherit;
+  text-shadow: 0 2px 16px rgba(245,243,238,0.85), 0 1px 3px rgba(245,243,238,0.95);
+}
+.model-station-name .msn-en {
+  display: block; margin-top: 9px;
+  font-family: var(--mono); font-size: 12px; font-weight: 600;
+  letter-spacing: 0.34em; text-transform: uppercase; color: rgba(10,10,10,0.6);
 }
 #stop-panel.sp-hidden {
   transform: translateY(-50%) translateX(calc(100% + 50px));
@@ -615,7 +735,10 @@ body::before {
   #bg-kanji    { font-size:20vw; }
   .hud-center  { display:none; }
   .data-block:first-child { display:none; }
-  #stop-panel      { width:280px; max-height: calc(100vh - 46px - 190px - 24px); }
+  #stop-panel      { width:280px; }
+  .sp-expand       { right: 304px; }                 /* track the narrower panel */
+  body.panel-big #stop-panel { width: min(440px, 92vw); }
+  body.panel-big .sp-expand  { right: min(464px, calc(92vw + 24px)); }
   #explorer-panel  { display:none; }
   #decals .dcl { display:none; }
 }

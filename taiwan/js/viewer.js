@@ -43,7 +43,8 @@ export class Viewer {
     this.canvas = document.createElement('canvas');
     this.canvas.id = 'gl-canvas';
     Object.assign(this.canvas.style, {
-      position: 'absolute', inset: '0', width: '100%', height: '100%', zIndex: '60'
+      position: 'absolute', inset: '0', width: '100%', height: '100%', zIndex: '60',
+      opacity: '0', transition: 'opacity 1100ms ease'   // smooth fade-in once loaded
     });
     this.container.insertBefore(this.canvas, this.container.firstChild);
 
@@ -113,6 +114,8 @@ export class Viewer {
     }
 
     this.animate();
+    // Reveal the model on the next frame (after it has rendered once).
+    requestAnimationFrame(() => { this.canvas.style.opacity = '1'; });
   }
 
   onResize() {

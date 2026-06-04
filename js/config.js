@@ -147,24 +147,6 @@ export const PROJECTS = [
     link: null,
   },
   {
-    name: 'Soft Skills',
-    tag: 'How I Work',
-    techs: ['Agile', 'Scrum', 'Cross-disciplinary'],
-    image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&q=80',
-    description: `
-      <p>I thrive in collaborative, research-driven environments where both engineering
-      rigour and creative thinking are valued.</p>
-      <ul>
-        <li>Agile / Scrum collaboration</li>
-        <li>Cross-disciplinary teamwork (research labs, industry partners)</li>
-        <li>Problem solving &amp; systems thinking</li>
-        <li>Technical documentation &amp; code reviews</li>
-        <li>Independent problem ownership</li>
-      </ul>
-      <p></p>`,
-    link: null,
-  },
-  {
     name: 'Taipei Tech minor',
     tag: 'Taiwan · Minor Project',
     techs: ['Embedded Systems', 'C++'],
@@ -184,12 +166,10 @@ export const PROJECTS = [
 /** Starting positions for each orb in world-space */
 export const ORB_ORIGINS = [
   [ 1.6,  6.2, -1.2],   // About Me — moved slightly up and to the right
-  [-8.5,  2.0, -1.5],
-  [ 8.0,  2.8,  0.8],
-  [-3.0, -4.0,  2.2],
-  [ 4.8, -3.8, -0.8],
-  [-7.8, -1.5,  3.0],
-  [ 0.8, -1.0, -3.0],
-  // Taipei Tech minor — place between TNO Internship and About Me, higher Y
-  [ -4.25, 8.2, -1.5 ],
+  [-8.5,  2.0, -1.5],   // TNO Internship
+  [ 8.0,  2.8,  0.8],   // Redox Flow Monitor
+  [-3.0, -4.0,  2.2],   // IP-CAR
+  [ 4.8, -3.8, -0.8],   // Education
+  [-7.8, -1.5,  3.0],   // Technical Skills
+  [ 0.8, -1.0, -3.0],   // Taipei Tech minor (Taiwan) — links to /taiwan/
 ];

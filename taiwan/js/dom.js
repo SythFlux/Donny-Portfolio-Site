@@ -32,6 +32,8 @@ export function initDOMRefs() {
   els.spLabelEn     = document.getElementById('sp-label-en');
   els.spDesc        = document.getElementById('sp-desc');
   els.spVideo       = document.getElementById('sp-video');
+  els.spDecal       = document.getElementById('sp-decal');
+  els.modelName     = document.getElementById('model-station-name');
 }
 
 // city — CityScene instance (may be null during initial render)
@@ -72,4 +74,12 @@ export function updateDOM(index, city) {
   if (els.spLabelEn)       els.spLabelEn.textContent   = item.labelEn;
   if (els.spDesc)          els.spDesc.textContent      = item.desc;
   if (els.spVideo)         els.spVideo.dataset.stop    = item.id;
+  if (els.spDecal)         els.spDecal.textContent     = item.stationCode;
+
+  if (els.modelName) {
+    els.modelName.style.color = item.lineColor;
+    els.modelName.innerHTML =
+      `<span class="msn-zh">${item.stationName}</span>` +
+      `<span class="msn-en">${item.stationNameEn.toUpperCase()}</span>`;
+  }
 }
