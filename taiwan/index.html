@@ -44,6 +44,29 @@
     </div>
   </div>
 
+  <!-- ── Interactive metro map overlay ────────────────────── -->
+  <!-- Opened from the map button; hover a station and click to travel there. -->
+  <div id="metro-map" aria-hidden="true">
+    <div class="mm-inner">
+      <div class="mm-eyebrow">[ MRT 台北捷運 · SELECT DESTINATION ]</div>
+      <canvas id="mm-canvas" width="720" height="520" class="mm-canvas"></canvas>
+      <div class="mm-hint"><span class="mm-hint-ico">◎</span> HOVER A STATION &nbsp;·&nbsp; CLICK TO TRAVEL</div>
+    </div>
+    <button id="mm-exit" class="mm-exit" aria-label="Exit map">
+      <span class="mm-exit-ico">✕</span><span class="mm-exit-txt">EXIT MAP</span>
+    </button>
+  </div>
+
+  <!-- Open the interactive metro map (left rail, near the explorer) -->
+  <button id="map-fab" class="map-fab" aria-label="Open metro map" title="Open metro map">
+    <span class="map-fab-ico">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14"/><path d="M15 6v14"/>
+      </svg>
+    </span>
+    <span class="map-fab-txt">MAP</span>
+  </button>
+
   <!-- Background decorative number -->
   <div id="bg-number" aria-hidden="true">01</div>
 

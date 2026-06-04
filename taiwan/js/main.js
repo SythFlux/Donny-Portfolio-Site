@@ -3,7 +3,7 @@ import { Viewer }              from './viewer.js';
 import { Timeline }            from './timeline.js';
 import { CityScene }           from './city.js';
 import { Explorer }            from './explorer.js';
-import { showMetroTransition } from './metro.js';
+import { showMetroTransition, openMetroMap } from './metro.js';
 import { els, initDOMRefs, updateDOM } from './dom.js';
 import { initCursor }          from './cursor.js';
 
@@ -95,6 +95,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       explorer.setActive(toIdx);
       timeline.setActive(toIdx);
       navigateTo(toIdx);
+    });
+
+    // Map button → open the interactive network map; picking a station
+    // runs the same navigation as the explorer/timeline.
+    const mapFab = document.getElementById('map-fab');
+    mapFab?.addEventListener('click', () => {
+      if (isTransitioning) return;
+      openMetroMap(currentStopIdx, (toIdx) => {
+        explorer.setActive(toIdx);
+        timeline.setActive(toIdx);
+        navigateTo(toIdx);
+      });
     });
   });
 });

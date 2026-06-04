@@ -452,6 +452,118 @@ function drawMetroFrame(ctx, fromIdx, toIdx, progress) {
     });
 }
 
+// ── Interactive map frame renderer (2.5D, browse mode) ────────
+// Same composition as the transition frame but with no travelling route:
+// every station is a pickable target. The current stop floats (the "you are
+// here" cloud); the hovered stop gets a pulsing selection ring.
+function drawBrowseFrame(ctx, currentIdx, hoverIdx) {
+  ctx.clearRect(0, 0, MC_W, MC_H);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+  const tracePath = (pts) => {
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.stroke();
+  };
+
+  // 1) White foundation block + Taipei landscape.
+  drawSlab(ctx);
+  drawLandscape(ctx);
+
+  // 2) Base network.
+  ctx.globalAlpha = 0.62;
+  METRO_LINES.forEach(({ color, pts }) => { ctx.strokeStyle = color; ctx.lineWidth = 8; tracePath(pts); });
+  ctx.globalAlpha = 1;
+
+  // 3) Minor stations + interchanges (flat on the ground).
+  MINOR.forEach(({ xy: [mx, my], color }) => groundDot(ctx, mx, my, 4.2, BG, color, 2));
+  TRANSFERS.forEach(([nx, ny]) => groundDot(ctx, nx, ny, 7, BG, '#3a3a3a', 3));
+
+  // 4) Station pins — back-to-front so nearer pins overlap farther ones.
+  config.timelineItems
+    .map((_, i) => i)
+    .sort((a, b) => (STA_GRID[a][0]+STA_GRID[a][1]) - (STA_GRID[b][0]+STA_GRID[b][1]))
+    .forEach((i) => {
+      const [c, r] = STA_GRID[i];
+      // Highlight the hovered, pickable station with a pulsing ring at the pin top.
+      if (i === hoverIdx && i !== currentIdx) {
+        const [hx, hy] = proj(c, r, PIN_H);
+        const puls = 0.5 + 0.5 * Math.sin(performance.now() * 0.006);
+        ctx.beginPath(); ctx.arc(hx, hy, 17 + puls * 6, 0, Math.PI * 2);
+        ctx.strokeStyle = config.timelineItems[i].lineColor; ctx.lineWidth = 3;
+        ctx.globalAlpha = 0.45 + 0.35 * puls; ctx.stroke(); ctx.globalAlpha = 1;
+      }
+      drawPin(ctx, c, r, i, config.timelineItems[i], i === currentIdx);
+    });
+}
+
+// ── Interactive map controller ────────────────────────────────
+// Opens the full network as a clickable map. Hover a station, click to travel.
+// currentIdx — the stop the traveller is parked at (rendered as "you are here")
+// onSelect   — called with the chosen station index once the map closes
+export function openMetroMap(currentIdx, onSelect) {
+  const overlay = document.getElementById('metro-map');
+  const canvas  = document.getElementById('mm-canvas');
+  const ctx     = canvas.getContext('2d');
+  const exitBtn = document.getElementById('mm-exit');
+
+  overlay.style.setProperty('--lc', config.timelineItems[currentIdx].lineColor);
+
+  let hoverIdx = -1, rafId = null, closed = false;
+
+  const render = () => { drawBrowseFrame(ctx, currentIdx, hoverIdx); rafId = requestAnimationFrame(render); };
+
+  // Client pixel → station index (hit-tests the pin tops). -1 if none.
+  const pickStation = (clientX, clientY) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = (clientX - rect.left) * (MC_W / rect.width);
+    const y = (clientY - rect.top)  * (MC_H / rect.height);
+    let best = -1, bestD = 28;                       // px radius in canvas space
+    config.timelineItems.forEach((_, i) => {
+      if (i === currentIdx) return;                  // can't travel to where we are
+      const [c, r] = STA_GRID[i];
+      const [px, py] = proj(c, r, PIN_H);
+      const d = Math.hypot(px - x, py - y);
+      if (d < bestD) { bestD = d; best = i; }
+    });
+    return best;
+  };
+
+  const onMove = (e) => {
+    hoverIdx = pickStation(e.clientX, e.clientY);
+    document.body.classList.toggle('cursor-hover', hoverIdx >= 0);
+  };
+  const onClick = (e) => {
+    const idx = pickStation(e.clientX, e.clientY);
+    if (idx >= 0) { close(); onSelect(idx); }
+  };
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+
+  function close() {
+    if (closed) return;
+    closed = true;
+    overlay.classList.remove('mm-show');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('cursor-hover');
+    canvas.removeEventListener('mousemove', onMove);
+    canvas.removeEventListener('click', onClick);
+    exitBtn.removeEventListener('click', close);
+    window.removeEventListener('keydown', onKey);
+    if (rafId) cancelAnimationFrame(rafId);
+  }
+
+  canvas.addEventListener('mousemove', onMove);
+  canvas.addEventListener('click', onClick);
+  exitBtn.addEventListener('click', close);
+  window.addEventListener('keydown', onKey);
+
+  overlay.setAttribute('aria-hidden', 'false');
+  overlay.classList.add('mm-show');
+  render();
+
+  return { close };
+}
+
 // ── Metro transition orchestrator ─────────────────────────────
 // panelEl — the stop panel DOM node (for slide-in/out CSS classes)
 // onMid   — called mid-animation to swap DOM content
