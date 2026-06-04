@@ -29,6 +29,13 @@ export class Timeline {
   lock()   { this._extLock = true; }
   unlock() { this._extLock = false; }
 
+  // Set active station from outside without firing onStopChange callback
+  setActive(idx) {
+    this.activeIndex = idx;
+    this._lastIndex  = idx;
+    this.commitProgress();
+  }
+
   render() {
     this.itemsContainer.innerHTML = '';
 
