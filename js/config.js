@@ -158,8 +158,10 @@ export const PROJECTS = [
     description: `
       <p><strong>Taipei Tech Minor</strong><br/>
       A Taiwan-focused minor project exploring embedded systems and hardware-software co-design.</p>
-      <p>This orb links to a dedicated Taiwan page with additional 3D content.</p>
-      <a class="detail-link" href="/taiwan/"><span>Explore Donny Taipei Minor</span> <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 7h11M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></a>`,
+      <p>This orb links to a dedicated Taiwan page with additional 3D content.</p>`,
+    // Special redirect: clicking this orb performs the zoom+fade and navigates
+    // to the Taipei landing page.
+    redirectUrl: '/taiwan/',
     // Visual accent for this orb's label (reddish to signify Taiwan)
     colorHex: 0xff4f4f,
     link: null,
