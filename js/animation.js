@@ -12,7 +12,7 @@ import { renderComposer, setDofFocus }         from './postprocessing.js';
 import { updateConstellation }                 from './constellation.js';
 import { updateIntro, isIntroDone }            from './intro.js';
 import { updateParallax }                      from './parallax.js';
-import { getTheme, isDark }                    from './darkmode.js';
+import { getTheme, isDark, getAccentName }     from './darkmode.js';
 import { updateOrbFx }                         from './orbfx.js';
 import { updateConstruct }                      from './construct.js';
 
@@ -54,6 +54,7 @@ function tick() {
 
   // ── Per-blob update ────────────────────────────────────────────────
   const theme = getTheme();
+  const accentIsDefault = getAccentName() === 'default';
   for (const b of blobs) {
     // SH coefficient morphing
     b.lerpT += dt * b.morphSpeed;
@@ -143,9 +144,12 @@ function tick() {
     const hScale = 1 + b.hoverT * 0.18;
     b.mesh.scale.setScalar(breath * hScale);
 
-    // Color lerp — adaptive to theme (via shader uniform)
-    const hoverColor = new THREE.Color(theme.wireHover);
+    // Color lerp — base follows the theme; on the default accent the hover color
+    // is the orb's own project color (TNO blue, Taipei red, Siemens petrol).
     const baseColor  = new THREE.Color(theme.wireHex);
+    const hoverColor = (accentIsDefault && b.labelColorHex != null)
+      ? new THREE.Color(b.labelColorHex)
+      : new THREE.Color(theme.wireHover);
     const targetColor = (b.hovered || isFocused) ? hoverColor : baseColor;
     b.mat.uniforms.uColor.value.lerp(targetColor, (b.hovered || isFocused) ? 0.14 : 0.06);
 
@@ -169,12 +173,20 @@ function tick() {
         }
       }
 
-      // Color: follow orb color lerp
-      const labelTarget = (b.hovered || isFocused) ? hoverColor : baseColor;
-      b.labelMat.color.lerp(labelTarget, (b.hovered || isFocused) ? 0.18 : 0.06);
+      // Color: use the label's own color on the default accent, else follow theme.
+      let labelBase, labelHover;
+      if (accentIsDefault && b.labelColorHex != null) {
+        labelBase  = new THREE.Color(b.labelColorHex);
+        labelHover = new THREE.Color(b.labelColorHex).lerp(new THREE.Color(0xffffff), 0.35);
+      } else {
+        labelBase  = baseColor;
+        labelHover = hoverColor;
+      }
+      const labelTarget = (b.hovered || isFocused) ? labelHover : labelBase;
+      b.labelMat.color.lerp(labelTarget, (b.hovered || isFocused) ? 0.18 : 0.1);
 
-      // Opacity: brighter on hover, dim when panel hides this orb
-      const baseLabelOp = 0.55 + b.hoverT * 0.45;
+      // Opacity: fully visible by default, hidden only when another orb is focused
+      const baseLabelOp = 1.0;
       const labelOp = panelState.panelOpen ? (isFocused ? baseLabelOp : 0.0) : baseLabelOp;
       b.labelMat.opacity += (labelOp - b.labelMat.opacity) * 0.08;
 

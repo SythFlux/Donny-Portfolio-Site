@@ -307,8 +307,11 @@ function makeDottedLabel(text, color, dotSize) {
 
   const mat = new THREE.PointsMaterial({
     color,
-    size: dotSize || 2.5,
-    sizeAttenuation: false,
+    // World-space dot size (sizeAttenuation: true) so the dots scale together
+    // with the text as you zoom. This keeps the dot-overlap density — and thus
+    // how solid/clear the text looks — constant at every zoom level.
+    size: dotSize || 0.09,
+    sizeAttenuation: true,
     transparent: true,
     opacity: 0.85,
     depthWrite: false,
@@ -372,10 +375,14 @@ export function createOrbs() {
     group.add(hitMesh);
     group.add(coreMesh);
 
-    // Dotted text label above the orb
-    // Label colour follows orb accent when available
-    const labelColor = (proj && proj.colorHex) ? proj.colorHex : 0x88bbff;
-    const label = makeDottedLabel(proj.name.toUpperCase(), labelColor, 1.8);
+    // Dotted text label above the orb.
+    // Per-project label color: textColor (e.g. TNO blue, Siemens petrol) or colorHex
+    // (e.g. Taipei red). null → no custom color, falls back to theme accent.
+    const labelCustom = (proj && proj.textColor)
+      ? new THREE.Color(proj.textColor).getHex()
+      : ((proj && proj.colorHex != null) ? proj.colorHex : null);
+    const labelColor = labelCustom != null ? labelCustom : 0x88bbff;
+    const label = makeDottedLabel(proj.name.toUpperCase(), labelColor, 0.14);
     label.points.position.y = baseR + 0.9;   // float above the orb surface
     group.add(label.points);
 
@@ -452,6 +459,7 @@ export function createOrbs() {
       // Dotted label + typewriter
       labelPts: label.points,
       labelMat: label.mat,
+      labelColorHex: labelCustom,   // custom label color (null = use theme accent)
       labelTotalDots: label.totalDots,
       labelRevealed: 0,       // current # of dots shown
       labelRevealDone: false, // true once fully typed

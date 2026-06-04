@@ -58,6 +58,11 @@ export function getAccentColors() {
   return isDark ? accent.dark : accent.light;
 }
 
+/** Name of the currently selected accent ('default' until the user picks one). */
+export function getAccentName() {
+  return currentAccent;
+}
+
 const THEMES = {
   light: {
     bg: 0xf0f0f4,
@@ -119,9 +124,13 @@ export function applyTheme(dark) {
       b.coreMat.needsUpdate = true;
     }
 
-    // Dotted label color & blending
+    // Dotted label color & blending.
+    // On the default accent, keep each label's own color (TNO blue, Siemens,
+    // Taipei red). When the user picks a theme color, labels follow that accent.
     if (b.labelMat) {
-      b.labelMat.color.set(accent.wire);
+      const labelHex = (currentAccent === 'default' && b.labelColorHex != null)
+        ? b.labelColorHex : accent.wire;
+      b.labelMat.color.set(labelHex);
       b.labelMat.blending = dark ? THREE.AdditiveBlending : THREE.NormalBlending;
       b.labelMat.needsUpdate = true;
     }

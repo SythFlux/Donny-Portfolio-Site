@@ -31,6 +31,8 @@ export const PROJECTS = [
   {
     name: 'TNO Internship',
     tag: 'Software Engineer Intern',
+    // Color for this project's showcase TEXT (TNO blue)
+    textColor: '#2a7de1',
     techs: ['C++', 'Python', 'GitLab', 'ZeroMQ', 'Android Automotive', 'CI/CD'],
     image: 'https://media.licdn.com/dms/image/v2/D4E2DAQEZuc1HFZLgGg/profile-treasury-image-shrink_800_800/B4EZwuWvelJAAY-/0/1770304242494?e=1772229600&v=beta&t=RrpJ9STi1bqSORsnp9uzMyopu2jBNrks-zfz5c--Bbs',
     description: `
@@ -49,8 +51,10 @@ export const PROJECTS = [
     link: 'https://www.tno.nl',
   },
   {
-    name: 'Redox Flow Monitor',
+    name: 'Siemens Student Software engineer',
     tag: 'Full-Stack / Data Engineering',
+    // Color for this project's showcase TEXT (Siemens petrol)
+    textColor: '#009999',
     techs: ['Python', 'FastAPI', 'PostgreSQL', 'InfluxDB', 'Docker'],
     image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&q=80',
     description: `
@@ -154,10 +158,9 @@ export const PROJECTS = [
     description: `
       <p><strong>Taipei Tech Minor</strong><br/>
       A Taiwan-focused minor project exploring embedded systems and hardware-software co-design.</p>
-      <p>This orb links to a dedicated Taiwan page with additional 3D content.</p>`,
-    // Special redirect: clicking this orb will perform a zoom+fade and navigate
-    redirectUrl: '/taiwan/',
-    // Visual accent for this orb (reddish to signify Taiwan)
+      <p>This orb links to a dedicated Taiwan page with additional 3D content.</p>
+      <a class="detail-link" href="/taiwan/"><span>Explore Donny Taipei Minor</span> <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 7h11M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></a>`,
+    // Visual accent for this orb's label (reddish to signify Taiwan)
     colorHex: 0xff4f4f,
     link: null,
   },
