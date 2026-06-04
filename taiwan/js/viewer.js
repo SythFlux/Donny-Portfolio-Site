@@ -11,11 +11,32 @@ export class Viewer {
     this.VIEW = viewConfig;
     this.timelineItems = timelineItems || [];
     
-    this.progressTarget = 0;
-    this.currentProgress = 0;
     this.modelBaseY = 0;
-    
+
+    // ── Camera/model view tween ───────────────────────────────
+    // We tween DIRECTLY between the current view and the target station's
+    // view. (The old code swept `progress` through every station in
+    // between, which whipped the camera through intermediate stations'
+    // extreme angles — e.g. 05→00 lurched through station 01's 143° yaw.)
+    this.viewKeys = ['pitchDeg','yawDeg','rollDeg','camYawDeg','camPitchDeg','distance','height','lookAtY'];
+    this.curView  = this._stationView(0);
+    this.fromView = { ...this.curView };
+    this.toView   = { ...this.curView };
+    this.viewT    = 1;            // 0 = at fromView, 1 = settled at toView
+
     this._setupScene();
+  }
+
+  // Resolve a station's view, falling back to the shared defaults.
+  _stationView(idx) {
+    const v = (this.timelineItems[idx] && this.timelineItems[idx].view) || {};
+    const out = {};
+    for (const k of this.viewKeys) out[k] = v[k] ?? this.VIEW[k] ?? 0;
+    return out;
+  }
+
+  _easeInOut(t) {
+    return t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
   }
 
   _setupScene() {
@@ -102,73 +123,60 @@ export class Viewer {
 
   animate(time) {
     requestAnimationFrame(this.animate.bind(this));
-    this.currentProgress += (this.progressTarget - this.currentProgress) * 0.12;
-    
+
+    // Advance the direct view tween (fixed-step → consistent ~0.8s move).
+    if (this.viewT < 1) {
+      this.viewT = Math.min(1, this.viewT + 0.02);
+      const e = this._easeInOut(this.viewT);
+      for (const k of this.viewKeys)
+        this.curView[k] = THREE.MathUtils.lerp(this.fromView[k], this.toView[k], e);
+    }
+
     // Animate background smoke
     animateEnvironment(time);
 
     const t = time * 0.001; // convert ms → seconds
 
     // --- Subtle continuous wave for the model (floating feel) ---
-    const modelWaveY = Math.sin(t * 0.8) * 0.012;           // gentle vertical bob
-    const modelWavePitch = Math.sin(t * 0.6 + 1.0) * 0.4;   // micro tilt
-    const modelWaveYaw = Math.cos(t * 0.5 + 2.0) * 0.3;     // micro sway
+    const modelWaveY     = Math.sin(t * 0.8) * 0.012;        // gentle vertical bob
+    const modelWavePitch = Math.sin(t * 0.6 + 1.0) * 0.28;   // micro tilt
+    const modelWaveYaw   = Math.cos(t * 0.5 + 2.0) * 0.22;   // micro sway
 
-    let currentPitch = this.VIEW.pitchDeg;
-    let currentYaw = this.VIEW.yawDeg;
-    let currentRoll = this.VIEW.rollDeg;
-    let currentCamYaw = this.VIEW.camYawDeg ?? 0;
-    let currentCamPitch = this.VIEW.camPitchDeg ?? 0;
-    let currentDistance = this.VIEW.distance;
-    let currentHeight = this.VIEW.height;
-    let currentLookAtY = this.VIEW.lookAtY;
-    
-    if (this.timelineItems && this.timelineItems.length > 1) {
-      const maxIndex = this.timelineItems.length - 1;
-      const exactIndex = Math.max(0, Math.min(this.currentProgress, 1)) * maxIndex;
-      const index = Math.floor(exactIndex);
-      const nextIndex = Math.min(index + 1, maxIndex);
-      const lerpFactor = exactIndex - index;
-      
-      const v1 = this.timelineItems[index].view || this.VIEW;
-      const v2 = this.timelineItems[nextIndex].view || this.VIEW;
-      
-      currentPitch = THREE.MathUtils.lerp(v1.pitchDeg ?? this.VIEW.pitchDeg, v2.pitchDeg ?? this.VIEW.pitchDeg, lerpFactor);
-      currentYaw = THREE.MathUtils.lerp(v1.yawDeg ?? this.VIEW.yawDeg, v2.yawDeg ?? this.VIEW.yawDeg, lerpFactor);
-      currentRoll = THREE.MathUtils.lerp(v1.rollDeg ?? this.VIEW.rollDeg, v2.rollDeg ?? this.VIEW.rollDeg, lerpFactor);
-      currentCamYaw = THREE.MathUtils.lerp(v1.camYawDeg ?? this.VIEW.camYawDeg, v2.camYawDeg ?? this.VIEW.camYawDeg, lerpFactor);
-      currentCamPitch = THREE.MathUtils.lerp(v1.camPitchDeg ?? this.VIEW.camPitchDeg, v2.camPitchDeg ?? this.VIEW.camPitchDeg, lerpFactor);
-      currentDistance = THREE.MathUtils.lerp(v1.distance ?? this.VIEW.distance, v2.distance ?? this.VIEW.distance, lerpFactor);
-      currentHeight = THREE.MathUtils.lerp(v1.height ?? this.VIEW.height, v2.height ?? this.VIEW.height, lerpFactor);
-      currentLookAtY = THREE.MathUtils.lerp(v1.lookAtY ?? this.VIEW.lookAtY, v2.lookAtY ?? this.VIEW.lookAtY, lerpFactor);
-    }
+    const v = this.curView;
 
     if (this.model) {
-      // Add subtle wave offsets to the rig rotation + position
-      this.rig.rotation.x = THREE.MathUtils.degToRad(currentPitch + modelWavePitch);
-      this.rig.rotation.y = THREE.MathUtils.degToRad(currentYaw + modelWaveYaw);
-      this.rig.rotation.z = THREE.MathUtils.degToRad(currentRoll);
-      // Height shift linked to rotation + floating bob
-      this.rig.position.y = this.modelBaseY + this.VIEW.startOffsetY * (1 - this.currentProgress) + modelWaveY;
+      this.rig.rotation.x = THREE.MathUtils.degToRad(v.pitchDeg + modelWavePitch);
+      this.rig.rotation.y = THREE.MathUtils.degToRad(v.yawDeg + modelWaveYaw);
+      this.rig.rotation.z = THREE.MathUtils.degToRad(v.rollDeg);
+      this.rig.position.y = this.modelBaseY + modelWaveY;
     }
-    
-    // --- Subtle continuous wave for the camera (handheld breath) ---
-    const camWaveX = Math.sin(t * 0.7 + 0.5) * 0.018;
-    const camWaveY = Math.cos(t * 0.9 + 1.5) * 0.012;
-    const camWaveZ = Math.sin(t * 0.55 + 2.5) * 0.015;
 
-    // Orbit camera around the model using spherical coordinates (camYaw, camPitch, distance)
-    const camYawRad = THREE.MathUtils.degToRad(currentCamYaw);
-    const camPitchRad = THREE.MathUtils.degToRad(currentCamPitch);
-    const lookTarget = new THREE.Vector3(0, (this.modelBaseY || 0) + currentLookAtY, 0);
-    this.camera.position.x = lookTarget.x + currentDistance * Math.cos(camPitchRad) * Math.sin(camYawRad) + camWaveX;
-    this.camera.position.y = lookTarget.y + currentDistance * Math.sin(camPitchRad) + camWaveY;
-    this.camera.position.z = lookTarget.z + currentDistance * Math.cos(camPitchRad) * Math.cos(camYawRad) + camWaveZ;
+    // --- Subtle continuous wave for the camera (handheld breath) ---
+    const camWaveX = Math.sin(t * 0.7 + 0.5) * 0.012;
+    const camWaveY = Math.cos(t * 0.9 + 1.5) * 0.008;
+    const camWaveZ = Math.sin(t * 0.55 + 2.5) * 0.010;
+
+    // Orbit camera around the model using spherical coords (camYaw, camPitch, distance)
+    const camYawRad   = THREE.MathUtils.degToRad(v.camYawDeg);
+    const camPitchRad = THREE.MathUtils.degToRad(v.camPitchDeg);
+    const lookTarget  = new THREE.Vector3(0, (this.modelBaseY || 0) + v.lookAtY, 0);
+    this.camera.position.x = lookTarget.x + v.distance * Math.cos(camPitchRad) * Math.sin(camYawRad) + camWaveX;
+    this.camera.position.y = lookTarget.y + v.distance * Math.sin(camPitchRad) + camWaveY;
+    this.camera.position.z = lookTarget.z + v.distance * Math.cos(camPitchRad) * Math.cos(camYawRad) + camWaveZ;
     this.camera.lookAt(lookTarget);
     this.renderer.render(this.scene, this.camera);
   }
 
+  // Smoothly tween the camera/model straight to a station's framing.
+  setStation(idx) {
+    this.fromView = { ...this.curView };
+    this.toView   = this._stationView(idx);
+    this.viewT    = 0;
+  }
+
+  // Back-compat: map a 0..1 progress to the nearest station and tween there.
   setModelProgress(p) {
-    this.progressTarget = THREE.MathUtils.clamp(p, 0, 1);
+    const max = Math.max(1, this.timelineItems.length - 1);
+    this.setStation(Math.round(THREE.MathUtils.clamp(p, 0, 1) * max));
   }
 }

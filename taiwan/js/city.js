@@ -56,10 +56,37 @@ export class CityScene {
     const { W, H, GY } = this;
     const hs = Math.min(1, H / 900);
 
+    // Shared background decals (grid + line-coloured rings) for EVERY scene.
+    this._s.circles = [
+      { cx:W*.20, cy:GY-210*hs, r:120*hs },
+      { cx:W*.70, cy:GY-175*hs, r:95*hs  },
+      { cx:W*.46, cy:GY-70*hs,  r:60*hs  },
+    ].map(c => ({ ...c, r:Math.max(30, c.r) }));
+
+    // Static crosshair "+" decals scattered across the field.
+    this._s.pluses = [[.08,.22],[.27,.62],[.41,.16],[.6,.44],[.79,.7],[.9,.26],[.16,.82],[.52,.8]]
+      .map(([fx,fy]) => ({ x:W*fx, y:GY*fy }));
+
+    // Per-scene motion flavour — each stop animates a bit differently.
+    const flavour = {
+      design:  { orbit: 0.5,  drift:[ 0.16,-0.05] },
+      village: { orbit: 0.3,  drift:[-0.10,-0.13] },
+      runway:  { orbit: 0.85, drift:[ 0.22, 0.00] },
+      mountain:{ orbit: 0.22, drift:[ 0.00,-0.09] },
+      city:    { orbit: 0.45, drift:[-0.18,-0.04] },
+    }[this.type] || { orbit: 0.4, drift:[0.12,-0.06] };
+    this._s.orbit = flavour.orbit;
+    // Drifting motes (the "something moving"), seeded per scene.
+    this._s.motes = Array.from({ length: 16 }, () => ({
+      x: Math.random()*W, y: Math.random()*GY,
+      vx: flavour.drift[0]*(0.5+Math.random()),
+      vy: flavour.drift[1]*(0.5+Math.random()),
+      r: 1 + Math.random()*2.2, ph: Math.random()*Math.PI*2,
+    }));
+
     if (this.type === 'design') {
       this._s.blocks = [
-        {x:W*.02,  y:GY-320*hs, w:180*hs, h:320*hs, c:'dark',  stripe:false},
-        {x:W*.14,  y:GY-180*hs, w:260*hs, h:180*hs, c:'line',  stripe:true },
+        // (left dark tower removed — it sat behind the station explorer)
         {x:W*.34,  y:GY-100*hs, w:120*hs, h:100*hs, c:'pale',  stripe:false},
         {x:W*.44,  y:GY-240*hs, w:80*hs,  h:240*hs, c:'dark',  stripe:false},
         {x:W*.50,  y:GY-140*hs, w:200*hs, h:140*hs, c:'line',  stripe:true },
@@ -67,11 +94,6 @@ export class CityScene {
         {x:W-380*hs-W*.02, y:GY-160*hs, w:220*hs, h:160*hs, c:'line', stripe:true },
         {x:W-140*hs-W*.14, y:GY-220*hs, w:100*hs, h:220*hs, c:'pale', stripe:false},
       ].map(b => ({...b, w:Math.max(40,b.w), h:Math.max(40,b.h)}));
-      this._s.circles = [
-        {cx:W*.28, cy:GY-200*hs, r:110*hs},
-        {cx:W*.72, cy:GY-180*hs, r:90*hs},
-        {cx:W*.50, cy:GY-60*hs,  r:60*hs},
-      ].map(c => ({...c, r:Math.max(30,c.r)}));
     }
 
     if (this.type === 'village') {
@@ -147,16 +169,52 @@ export class CityScene {
     ctx.beginPath(); ctx.arc(p.x,by-p.r-p.r*.28,p.r*.42,0,Math.PI*2); ctx.fillStyle='#0e0e0e'; ctx.fill();
   }
 
-  /* ── DESIGN ────────────────────────────────────────────────── */
-  _drawDesign(t) {
+  /* ── SHARED BACKDROP (grid + rings + animated decals) ────────── */
+  _plus(ctx, x, y, s) {
+    ctx.strokeStyle='rgba(0,0,0,0.11)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x-s,y); ctx.lineTo(x+s,y);
+    ctx.moveTo(x,y-s); ctx.lineTo(x,y+s); ctx.stroke();
+  }
+
+  _drawBackdrop(t) {
     const {ctx,W,GY} = this;
+
+    // Grid
     ctx.strokeStyle='rgba(0,0,0,0.04)'; ctx.lineWidth=1;
     for (let x=0;x<W;x+=40) { ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,GY);ctx.stroke(); }
     for (let y=0;y<GY;y+=40) { ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke(); }
-    for (const c of this._s.circles??[]) {
+
+    // Static "+" crosshair decals
+    for (const p of this._s.pluses??[]) this._plus(ctx, p.x, p.y, 5);
+
+    // Drifting motes (moving) — flavour differs per scene
+    for (const m of this._s.motes??[]) {
+      m.x += m.vx; m.y += m.vy;
+      if (m.x < -5) m.x += W+10; else if (m.x > W+5) m.x -= W+10;
+      if (m.y < -5) m.y += GY+10; else if (m.y > GY+5) m.y -= GY+10;
+      const tw = 0.45 + 0.55*Math.abs(Math.sin(t*1.4 + m.ph));
+      ctx.save(); ctx.globalAlpha = 0.06 + 0.16*tw;
+      ctx.fillStyle = this.lc;
+      ctx.beginPath(); ctx.arc(m.x, m.y, m.r, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    // Rings + a dot orbiting each (moving), alternating direction
+    const sp = this._s.orbit ?? 0.4;
+    (this._s.circles??[]).forEach((c, i) => {
       ctx.beginPath(); ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);
       ctx.strokeStyle=this.lc+'22'; ctx.lineWidth=2; ctx.stroke();
-    }
+      const a  = t * sp * (i % 2 ? -1 : 1) + i*2.1;
+      const ox = c.cx + Math.cos(a)*c.r, oy = c.cy + Math.sin(a)*c.r;
+      ctx.beginPath(); ctx.arc(ox, oy, 4, 0, Math.PI*2);
+      ctx.fillStyle = this.lc + 'cc'; ctx.fill();
+      ctx.strokeStyle = 'rgba(245,243,238,0.8)'; ctx.lineWidth = 1.5; ctx.stroke();
+    });
+  }
+
+  /* ── DESIGN ────────────────────────────────────────────────── */
+  _drawDesign(t) {
+    const {ctx,W,GY} = this;
     for (const b of this._s.blocks??[]) {
       ctx.fillStyle=this._col(b.c); ctx.fillRect(b.x,b.y,b.w,b.h);
       if (b.stripe) this._stripe(ctx,b.x,b.y,b.w,b.h);
@@ -340,6 +398,7 @@ export class CityScene {
     const {ctx,W,H}=this;
     const t=ts*.001;
     ctx.clearRect(0,0,W,H);
+    this._drawBackdrop(t);   // grid + rings behind every scene
     switch(this.type) {
       case 'design':   this._drawDesign(t);   break;
       case 'village':  this._drawVillage(t);  break;

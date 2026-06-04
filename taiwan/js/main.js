@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           timeline.unlock();
           explorer.unlock();
           viewerBlocked = false;
-          viewer.setModelProgress(pendingProgress);
+          viewer.setStation(toIdx);   // tween straight to the destination view
         }
       );
     }

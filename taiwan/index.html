@@ -6,7 +6,7 @@
   <title>DTDVO — Taiwan 台灣</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;800&family=Noto+Sans+SC:wght@400;700;900&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+SC:wght@400;700;900&display=swap" />
   <link rel="stylesheet" href="./style.css" />
   <script type="importmap">
   {
@@ -37,7 +37,7 @@
         <span id="mt-to-zh" class="mt-zh">西門</span>
       </div>
       <!-- Canvas-drawn metro map with animated travelling dot -->
-      <canvas id="mt-canvas" width="560" height="280" class="mt-canvas"></canvas>
+      <canvas id="mt-canvas" width="640" height="480" class="mt-canvas"></canvas>
       <div id="mt-en-label" class="mt-en-label">
         TAIPEI MAIN STATION → XIMENDING
       </div>
@@ -159,6 +159,7 @@
 
   <!-- Bottom timeline -->
   <section id="timeline" class="hidden">
+    <div class="tl-hint"><span class="tl-hint-ico">⇕</span> SCROLL &nbsp;·&nbsp; CLICK A STOP TO TRAVEL</div>
     <div class="tl-inner">
       <div class="track">
         <div class="track-line"></div>

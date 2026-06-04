@@ -10,127 +10,177 @@ const MT_DONE      = 1460;
 // ── Network geometry ──────────────────────────────────────────
 /*
   DESIGN RULES:
-  1. Define lines first as polylines of H/V/45° segments.
-  2. Place each station exactly ON its line.
-  3. Every route point must lie on an actual line segment — no phantom cuts.
+  1. The map is laid out on a uniform grid. Because the grid cell is
+     square (GX === GY), every segment is a true horizontal, vertical
+     or 45° diagonal — the "octolinear" convention of real metro maps.
+  2. Lines are polylines of grid nodes. Stations sit exactly on a node.
+  3. Where two lines share a node they form an interchange. Routing is
+     a shortest-path search over the graph of those segments, so a trip
+     runs straight, turns, transfers at a real interchange, and only
+     backtracks when that genuinely is the shortest way — never a forced
+     loop and never a single straight line.
 
-  Hourglass layout — 4 corners connect to two vertical spines
-  via exactly 45° diagonals. O11 sits on the horizontal corridor.
+  Topology mirrors central Taipei so it reads like an actual map.
+  Every line runs in long, confident H / V / 45° strokes and ends only
+  at a station or a real interchange — there are no stubs into empty space.
 
-        V00[70,50]           BL11[490,50]
-           \   purple       blue   /
-            \  45°           45°  /
-         [T:130,110]       [T:430,110]
-             |                 |
-         [T:130,140]═══════[T:430,140]   ← orange corridor (y=140)
-             |                 |
-         [T:130,170]       [T:430,170]
-            /  red           green  \
-           /  45°             45°    \
-        R05[70,230]           G07[490,230]
+           V00·出發
+              \ purple
+               \
+   西門 ●━━━━━━━●台北車站━━━━━━●━━━━↘
+    │ \         (B×P×R)              ●象山
+ g  │  \ green                      ↗ orange
+ r  │   \                          /
+ e  │    ●中正紀念堂━━━━━●東門━━━●
+ e  │   /  (R×G)         (R×O)  \
+ n  │  / green                    ↘
+    │ /                            ●台北101 (red term)
+  古亭●━━━●公館
+  (G×O)   (green term)
 
-  Left spine  x=130: Purple [V00→T110→T140] + Red [R05→T170→T140]
-  Right spine x=430: Blue [BL11→T110→T140] + Green [G07→T170→T140]
-  Corridor   y=140: Orange runs full width; O11[280,140] sits on it.
-
-  Diagonal deltas are exactly 60px × 60px = true 45°.
+  Interchanges (shared grid nodes):
+    西門      Blue × Green        台北車站  Blue × Purple × Red
+    中正紀念堂 Red  × Green        東門      Red  × Orange
+    古亭      Green × Orange
 */
-const MC_W = 560, MC_H = 280;
+const MC_W = 640, MC_H = 480;
 
-// [70,50]→[130,110]: Δ=(60,60) ✓45°   [490,50]→[430,110]: Δ=(-60,60) ✓45°
-// [70,230]→[130,170]: Δ=(60,-60) ✓45°  [490,230]→[430,170]: Δ=(-60,-60) ✓45°
-const STA_XY = [
-  [ 70,  50],  // V00  — purple, top-left
-  [490,  50],  // BL11 — blue,   top-right
-  [490, 230],  // G07  — green,  bottom-right
-  [280, 140],  // O11  — orange, centre corridor
-  [ 70, 230],  // R05  — red,    bottom-left
+// Grid → pixel. Square cell (GX === GY) keeps every diagonal a true 45°.
+const OX = 55, OY = 40, GX = 40, GY = 40;
+const gp = (c, r) => [OX + c * GX, OY + r * GY];
+
+// Each line is an ordered list of [col,row] grid nodes (corners included).
+const LINE_DEFS = [
+  { color:'#0070c0', grid:[[1,3],[7,3],[11,3],[13,5]]             }, // Blue   板南線     — long E-W trunk, bends ↘ to 象山
+  { color:'#7c3aed', grid:[[4,0],[7,3]]                          }, // Purple 文創設計線 — 45° feeder into 台北車站
+  { color:'#e3001b', grid:[[7,3],[7,7],[10,7],[13,10]]           }, // Red    淡水信義線 — ↓ spine, → then ↘ to 台北101
+  { color:'#008659', grid:[[1,3],[5,7],[7,7],[4,10],[1,10]]      }, // Green  松山新店線 — ↘ from 西門, through 中正, SW to 公館
+  { color:'#f5a623', grid:[[13,5],[11,7],[10,7],[7,10],[4,10]]   }, // Orange 中和新蘆線 — ↙ from 象山, through 東門 & 古亭
 ];
 
-// Each line is drawn as a polyline — stations sit exactly on these points
-const METRO_LINES = [
-  { color:'#7c3aed', pts:[[60,40],[70,50],[130,110],[130,140]]   }, // Purple: V00 → 45°diag → left spine top
-  { color:'#0070c0', pts:[[500,40],[490,50],[430,110],[430,140]] }, // Blue:   BL11 → 45°diag → right spine top
-  { color:'#008659', pts:[[500,240],[490,230],[430,170],[430,140]]}, // Green: G07 → 45°diag → right spine bottom
-  { color:'#f5a623', pts:[[55,140],[510,140]]                    }, // Orange: full horizontal corridor, O11 on it
-  { color:'#e3001b', pts:[[60,240],[70,230],[130,170],[130,140]] }, // Red:    R05 → 45°diag → left spine bottom
+// Station (config index) → grid node it sits on.
+const STA_GRID = [
+  [ 4,  0],  // 0 · V00  出發站   — purple feeder top
+  [ 1,  3],  // 1 · BL11 西門     — Blue × Green interchange (west end)
+  [ 1, 10],  // 2 · G07  公館     — green SW terminus
+  [13,  5],  // 3 · O11  象山     — Blue × Orange interchange (east end)
+  [13, 10],  // 4 · R03  台北101  — red SE terminus
 ];
 
-// Where two or more lines physically meet
-const TRANSFERS = [
-  [130, 110],  // Purple 45°-diag ↕ left spine
-  [430, 110],  // Blue   45°-diag ↕ right spine
-  [130, 140],  // Left spine × corridor
-  [430, 140],  // Right spine × corridor
-  [130, 170],  // Red    45°-diag ↕ left spine
-  [430, 170],  // Green  45°-diag ↕ right spine
-];
+// Pixel-space polylines for drawing the base map.
+const METRO_LINES = LINE_DEFS.map(d => ({ color:d.color, pts:d.grid.map(([c,r]) => gp(c,r)) }));
+const STA_XY      = STA_GRID.map(([c,r]) => gp(c,r));
 
-// Routes use ONLY segments that exist in METRO_LINES above — verified point-by-point
-const ROUTES = {
-  //            on Purple           corridor           on Blue
-  '0>1': [[ 70, 50],[130,110],[130,140],[430,140],[430,110],[490, 50]],
-  //            on Blue             on Green
-  '1>2': [[490, 50],[430,110],[430,170],[490,230]],
-  //            on Green            corridor
-  '2>3': [[490,230],[430,170],[430,140],[280,140]],
-  //            corridor            on Red
-  '3>4': [[280,140],[130,140],[130,170],[ 70,230]],
-  //            on Red              on Purple
-  '4>0': [[ 70,230],[130,170],[130,110],[ 70, 50]],
-};
+// ── Build the route graph from the line segments ──────────────
+const nkey = (c, r) => `${c},${r}`;
+const adj  = new Map();                       // node key → [{ k, w }]
+function linkNodes(a, b) {
+  const ka = nkey(a[0], a[1]), kb = nkey(b[0], b[1]);
+  const w  = Math.hypot((b[0]-a[0]) * GX, (b[1]-a[1]) * GY);
+  if (!adj.has(ka)) adj.set(ka, []);
+  if (!adj.has(kb)) adj.set(kb, []);
+  adj.get(ka).push({ k: kb, w });
+  adj.get(kb).push({ k: ka, w });
+}
+LINE_DEFS.forEach(({ grid }) => {
+  for (let i = 0; i < grid.length - 1; i++) linkNodes(grid[i], grid[i+1]);
+});
 
-// ── Icon offsets per station ──────────────────────────────────
-const ICON_OFFSETS = [
-  [-28,   0],  // V00  [70,50]   — left
-  [ 28,   0],  // BL11 [490,50]  — right
-  [ 28,   0],  // G07  [490,230] — right
-  [  0, -28],  // O11  [280,140] — above corridor
-  [-28,   0],  // R05  [70,230]  — left
-];
+// Integer grid points walked by a single octolinear segment, inclusive.
+function segPoints(a, b) {
+  const dc = b[0]-a[0], dr = b[1]-a[1];
+  const n  = Math.max(Math.abs(dc), Math.abs(dr));
+  const sx = Math.sign(dc), sy = Math.sign(dr);
+  const out = [];
+  for (let k = 0; k <= n; k++) out.push([a[0]+sx*k, a[1]+sy*k]);
+  return out;
+}
 
-const LABEL_CFG = [
-  { dx:  18, dy:  0, align: 'left',   dir: -1 }, // V00  — right, above
-  { dx: -18, dy:  0, align: 'right',  dir: -1 }, // BL11 — left,  above
-  { dx: -18, dy:  0, align: 'right',  dir:  1 }, // G07  — left,  below
-  { dx:   0, dy:-16, align: 'center', dir: -1 }, // O11  — centred above
-  { dx:  18, dy:  0, align: 'left',   dir:  1 }, // R05  — right, below
-];
+// Interchange nodes = grid nodes shared by >1 line (the named transfers).
+const lineCount = new Map();
+LINE_DEFS.forEach(({ grid }) => {
+  new Set(grid.map(([c,r]) => nkey(c,r))).forEach(k =>
+    lineCount.set(k, (lineCount.get(k) || 0) + 1));
+});
+const stationKeys = new Set(STA_GRID.map(([c,r]) => nkey(c,r)));
+const hubKeys     = new Set([...lineCount].filter(([k,n]) => n > 1 && !stationKeys.has(k)).map(([k]) => k));
+const TRANSFERS   = [...hubKeys].map(k => { const [c,r] = k.split(',').map(Number); return gp(c,r); });
 
-// ── Path builder ──────────────────────────────────────────────
-// Chains adjacent route segments to build any multi-hop path.
-// Picks the shortest direction around the circular loop automatically.
-function buildRoutePath(fromIdx, toIdx, progress) {
-  const key    = `${fromIdx}>${toIdx}`;
-  const revKey = `${toIdx}>${fromIdx}`;
-  let pts;
+// Minor stations = every other grid point along a line (Beck's evenly
+// spaced dots), excluding the named stations and interchanges.
+const MINOR = [];
+{
+  const seen = new Set();
+  LINE_DEFS.forEach(({ color, grid }) => {
+    for (let i = 0; i < grid.length - 1; i++) {
+      segPoints(grid[i], grid[i+1]).forEach(([c,r]) => {
+        const k = nkey(c,r);
+        if (stationKeys.has(k) || hubKeys.has(k) || seen.has(k)) return;
+        seen.add(k);
+        MINOR.push({ xy: gp(c,r), color });
+      });
+    }
+  });
+}
 
-  if (ROUTES[key]) {
-    pts = ROUTES[key].map(p => [...p]);
-  } else if (ROUTES[revKey]) {
-    pts = [...ROUTES[revKey]].reverse().map(p => [...p]);
-  } else {
-    const n   = Object.keys(ROUTES).length; // station count = number of adjacent pairs
-    const fwd = (toIdx - fromIdx + n) % n;
-    const bwd = (fromIdx - toIdx + n) % n;
-    pts = [];
+// ── Shortest path (Dijkstra) between two grid nodes ───────────
+function shortestGridPath(from, to) {
+  const start = nkey(from[0], from[1]);
+  const goal  = nkey(to[0],   to[1]);
+  if (start === goal) return [from];
 
-    if (fwd <= bwd) {
-      for (let i = 0; i < fwd; i++) {
-        const a   = (fromIdx + i) % n;
-        const b   = (a + 1) % n;
-        const seg = ROUTES[`${a}>${b}`].map(p => [...p]);
-        pts = pts.length ? [...pts, ...seg.slice(1)] : seg;
-      }
-    } else {
-      for (let i = 0; i < bwd; i++) {
-        const a   = (fromIdx - i + n) % n;
-        const b   = (a - 1 + n) % n;
-        const seg = [...ROUTES[`${b}>${a}`]].reverse().map(p => [...p]);
-        pts = pts.length ? [...pts, ...seg.slice(1)] : seg;
+  const dist = new Map([[start, 0]]);
+  const prev = new Map();
+  const pq   = [[0, start]];                  // tiny graph → simple array PQ is fine
+
+  while (pq.length) {
+    pq.sort((a, b) => a[0] - b[0]);
+    const [d, u] = pq.shift();
+    if (u === goal) break;
+    if (d > (dist.get(u) ?? Infinity)) continue;
+    for (const { k, w } of (adj.get(u) || [])) {
+      const nd = d + w;
+      if (nd < (dist.get(k) ?? Infinity)) {
+        dist.set(k, nd); prev.set(k, u); pq.push([nd, k]);
       }
     }
   }
+
+  if (!prev.has(goal)) return [from, to];     // disconnected fallback (shouldn't happen)
+  const path = [];
+  for (let cur = goal; cur; cur = prev.get(cur)) {
+    const [c, r] = cur.split(',').map(Number);
+    path.unshift([c, r]);
+    if (cur === start) break;
+  }
+  return path;
+}
+
+// Routes are stable per station pair — resolve once, then reuse.
+const ROUTE_CACHE = {};
+function routePixels(fromIdx, toIdx) {
+  const key = `${fromIdx}>${toIdx}`;
+  if (!ROUTE_CACHE[key])
+    ROUTE_CACHE[key] = shortestGridPath(STA_GRID[fromIdx], STA_GRID[toIdx]).map(([c,r]) => gp(c,r));
+  return ROUTE_CACHE[key];
+}
+
+// ── Label placement per station ───────────────────────────────
+// Each label block (name + code) is pushed into open map space, clear
+// of the lines. dx/dy = block-centre offset from the station marker.
+const LABEL_CFG = [
+  { dx: -26, dy:  4, align: 'right' }, // 0 V00     — left
+  { dx: -26, dy:  0, align: 'right' }, // 1 西門     — left (west edge)
+  { dx: -26, dy:  0, align: 'right' }, // 2 公館     — left (SW corner)
+  { dx:  26, dy:  0, align: 'left'  }, // 3 象山     — right (east edge)
+  { dx: -26, dy:  0, align: 'right' }, // 4 台北101  — left (off the right edge)
+];
+
+// ── Path builder ──────────────────────────────────────────────
+// Resolves the shortest network path between the two stations, then
+// returns the leading slice of it for the current animation progress.
+function buildRoutePath(fromIdx, toIdx, progress) {
+  const pts = routePixels(fromIdx, toIdx).map(p => [...p]);
 
   let totalDist = 0;
   for (let i = 0; i < pts.length - 1; i++)
@@ -153,119 +203,98 @@ function buildRoutePath(fromIdx, toIdx, progress) {
   return result;
 }
 
-// ── Station icon renderer ─────────────────────────────────────
-function drawIcon(ctx, scene, cx, cy, color) {
-  ctx.fillStyle = color;
-  switch (scene) {
-    case 'design':
-      ctx.save(); ctx.translate(cx, cy); ctx.rotate(Math.PI/4);
-      ctx.fillRect(-7,-7,14,14); ctx.restore();
-      ctx.fillStyle = 'rgba(255,255,255,0.55)';
-      ctx.save(); ctx.translate(cx,cy); ctx.rotate(Math.PI/4);
-      ctx.fillRect(-3,-3,6,6); ctx.restore();
-      break;
-    case 'village':
-      ctx.fillRect(cx-9, cy-2, 18, 14);
-      ctx.beginPath(); ctx.moveTo(cx-12,cy-2); ctx.lineTo(cx,cy-16); ctx.lineTo(cx+12,cy-2);
-      ctx.closePath(); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.fillRect(cx-6, cy, 5, 6); ctx.fillRect(cx+1, cy, 5, 6);
-      break;
-    case 'runway':
-      ctx.fillRect(cx-4, cy-18, 8, 18);
-      ctx.fillRect(cx-9, cy-26, 18, 10);
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.fillRect(cx-7, cy-24, 14, 7);
-      ctx.fillStyle = color;
-      ctx.fillRect(cx-2, cy-30, 4, 5);
-      break;
-    case 'mountain':
-      ctx.beginPath(); ctx.moveTo(cx-14,cy+8); ctx.lineTo(cx-2,cy-10); ctx.lineTo(cx+10,cy+8); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = color + 'bb';
-      ctx.beginPath(); ctx.moveTo(cx-2,cy+8); ctx.lineTo(cx+10,cy-14); ctx.lineTo(cx+22,cy+8); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.75)';
-      ctx.beginPath(); ctx.moveTo(cx+10,cy-14); ctx.lineTo(cx+6,cy-7); ctx.lineTo(cx+14,cy-7); ctx.closePath(); ctx.fill();
-      break;
-    case 'city':
-      ctx.fillRect(cx-15,cy-12,8,12);
-      ctx.fillRect(cx-5, cy-20,10,20);
-      ctx.fillRect(cx+7, cy-8, 8, 8);
-      ctx.fillStyle = 'rgba(255,255,255,0.22)';
-      ctx.fillRect(cx-13,cy-10,3,3); ctx.fillRect(cx-13,cy-5,3,3);
-      ctx.fillRect(cx-3, cy-17,3,3); ctx.fillRect(cx-3, cy-11,3,3); ctx.fillRect(cx-3,cy-5,3,3);
-      break;
-  }
-}
-
-function drawLabel(ctx, item, sx, sy, cfgIdx) {
-  const { dx, dy, align, dir } = LABEL_CFG[cfgIdx];
+// ── Station label renderer ────────────────────────────────────
+// Name + code, two lines, with a soft background halo so the text stays
+// legible wherever it sits over the map.
+const BG = '#f5f3ee';
+function drawLabel(ctx, item, sx, sy, i, isDest) {
+  const { dx, dy, align } = LABEL_CFG[i];
+  const x = sx + dx;
   ctx.save();
-  ctx.textAlign = align;
-  ctx.textBaseline = dir === 1 ? 'top' : 'bottom';
-  ctx.font = 'bold 14px "Noto Sans SC", sans-serif';
-  ctx.fillStyle = '#111';
-  ctx.fillText(item.stationName, sx + dx, sy + dy);
-  ctx.font = 'bold 11px "Courier New"';
-  ctx.fillStyle = item.lineColor;
-  ctx.fillText(item.stationCode, sx + dx, sy + dy + dir * 19);
+  ctx.textAlign = align; ctx.textBaseline = 'middle';
+  const halo = (text, yy, font, fill) => {
+    ctx.font = font;
+    ctx.lineWidth = 4; ctx.lineJoin = 'round';
+    ctx.strokeStyle = 'rgba(245,243,238,0.92)';
+    ctx.strokeText(text, x, yy);
+    ctx.fillStyle = fill;
+    ctx.fillText(text, x, yy);
+  };
+  halo(item.stationName, sy + dy - 8, `${isDest ? '900' : 'bold'} 15px "Noto Sans SC", sans-serif`, '#0a0a0a');
+  halo(item.stationCode, sy + dy + 9, 'bold 11px "JetBrains Mono", monospace', item.lineColor);
   ctx.restore();
 }
 
 // ── Metro map frame renderer ──────────────────────────────────
 function drawMetroFrame(ctx, fromIdx, toIdx, progress) {
-  const BG = 'rgba(245,243,238,1)';
   ctx.clearRect(0, 0, MC_W, MC_H);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
 
-  METRO_LINES.forEach(({ color, pts }) => {
-    ctx.strokeStyle = color + '60';
-    ctx.lineWidth = 9; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const tracePath = (pts) => {
     ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
     for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
     ctx.stroke();
+  };
+
+  // 1) Base network — full colour, long confident strokes.
+  ctx.globalAlpha = 0.6;
+  METRO_LINES.forEach(({ color, pts }) => {
+    ctx.strokeStyle = color; ctx.lineWidth = 10; tracePath(pts);
+  });
+  ctx.globalAlpha = 1;
+
+  // 2) Evenly-spaced minor stations along every line.
+  MINOR.forEach(({ xy: [mx, my], color }) => {
+    ctx.beginPath(); ctx.arc(mx, my, 3.2, 0, Math.PI * 2);
+    ctx.fillStyle = BG; ctx.fill();
+    ctx.globalAlpha = 0.65; ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+    ctx.globalAlpha = 1;
   });
 
+  // 3) The travelling route — white casing lifts it above the network,
+  //    then the bright line colour rides on top.
   const routePts  = buildRoutePath(fromIdx, toIdx, progress);
   const fromColor = config.timelineItems[fromIdx].lineColor;
-
   if (routePts.length >= 2) {
-    ctx.strokeStyle = fromColor;
-    ctx.lineWidth = 9; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.beginPath(); ctx.moveTo(routePts[0][0], routePts[0][1]);
-    for (let i = 1; i < routePts.length; i++) ctx.lineTo(routePts[i][0], routePts[i][1]);
-    ctx.stroke();
+    ctx.strokeStyle = BG;        ctx.lineWidth = 16; tracePath(routePts);
+    ctx.strokeStyle = fromColor; ctx.lineWidth = 10; tracePath(routePts);
   }
 
-  const [tx, ty] = routePts[routePts.length - 1];
-  ctx.beginPath(); ctx.arc(tx, ty, 11, 0, Math.PI * 2);
-  ctx.fillStyle = fromColor; ctx.fill();
-  ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
-  ctx.beginPath(); ctx.arc(tx, ty, 18, 0, Math.PI * 2);
-  ctx.strokeStyle = fromColor + '44'; ctx.lineWidth = 3; ctx.stroke();
-
+  // 4) Interchange symbols (drawn over the lines).
   TRANSFERS.forEach(([nx, ny]) => {
-    ctx.beginPath(); ctx.arc(nx, ny, 5, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(nx, ny, 7, 0, Math.PI * 2);
     ctx.fillStyle = BG; ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.strokeStyle = '#3a3a3a'; ctx.lineWidth = 3; ctx.stroke();
   });
 
+  // 5) Travelling head.
+  const [tx, ty] = routePts[routePts.length - 1];
+  ctx.beginPath(); ctx.arc(tx, ty, 17, 0, Math.PI * 2); ctx.fillStyle = fromColor + '33'; ctx.fill();
+  ctx.beginPath(); ctx.arc(tx, ty,  9, 0, Math.PI * 2); ctx.fillStyle = fromColor;        ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
+
+  // 6) The five journey stations + labels (drawn last, on top).
   config.timelineItems.forEach((item, i) => {
     const [sx, sy] = STA_XY[i];
     const isDest = i === toIdx;
-    const staR   = isDest ? 14 : 11;
 
-    ctx.beginPath(); ctx.arc(sx, sy, staR, 0, Math.PI * 2);
-    ctx.fillStyle   = isDest ? item.lineColor : BG;
-    ctx.strokeStyle = item.lineColor;
-    ctx.lineWidth   = 3.5; ctx.fill(); ctx.stroke();
+    if (isDest) {
+      ctx.beginPath(); ctx.arc(sx, sy, 21, 0, Math.PI * 2);
+      ctx.fillStyle = item.lineColor + '22'; ctx.fill();
+    }
 
-    ctx.font = 'bold 8px "Courier New"';
+    const r = isDest ? 13 : 10;
+    ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2);
+    ctx.fillStyle   = isDest ? item.lineColor : '#fff';
+    ctx.strokeStyle = item.lineColor; ctx.lineWidth = 4;
+    ctx.fill(); ctx.stroke();
+
+    ctx.font = 'bold 9px "JetBrains Mono", monospace';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = isDest ? '#fff' : item.lineColor;
     ctx.fillText(item.lineCode, sx, sy);
 
-    const [ix, iy] = ICON_OFFSETS[i];
-    drawIcon(ctx, item.scene, sx + ix, sy + iy, item.lineColor);
-    drawLabel(ctx, item, sx, sy, i);
+    drawLabel(ctx, item, sx, sy, i, isDest);
   });
 }
 
