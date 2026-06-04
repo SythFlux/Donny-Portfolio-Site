@@ -1,31 +1,39 @@
 import * as THREE from 'three';
 
+// Lighting optimised for a transparent scene — the model needs to
+// pop against the city canvas below without any scene background.
 export function setupEnvironment(scene) {
-  // Clean white studio — no fog, just pure white
   scene.fog = null;
 
-  // Soft ambient light for even illumination
-  const ambient = new THREE.AmbientLight(0xffffff, 3.0);
+  // Strong ambient so model reads on any background colour
+  const ambient = new THREE.AmbientLight(0xffffff, 3.8);
   scene.add(ambient);
 
-  // Neutral key light from the front-top
-  const keyLight = new THREE.DirectionalLight(0xffffff, 3.5);
-  keyLight.position.set(2, 6, 4);
-  scene.add(keyLight);
+  // Hard key from front-top-left
+  const key = new THREE.DirectionalLight(0xffffff, 5.5);
+  key.position.set(2, 6, 4);
+  scene.add(key);
 
-  // Soft fill light from the opposite side
-  const fillLight = new THREE.DirectionalLight(0xffffff, 1.5);
-  fillLight.position.set(-3, 3, -2);
-  scene.add(fillLight);
+  // Cool-tinted fill from opposite rear — adds colour depth
+  const fill = new THREE.DirectionalLight(0xddeeff, 2.2);
+  fill.position.set(-3, 3, -2);
+  scene.add(fill);
 
-  // Subtle rim light from behind for edge definition
-  const rimLight = new THREE.SpotLight(0xffffff, 40);
-  rimLight.position.set(-4, 5, -4);
-  rimLight.target.position.set(0, 0, 0);
-  scene.add(rimLight);
-  scene.add(rimLight.target);
+  // Hot rim / back light — crisp silhouette edge against city bg
+  const rim = new THREE.SpotLight(0xffffff, 100);
+  rim.position.set(-3, 6, -5);
+  rim.target.position.set(0, 0, 0);
+  rim.angle    = 0.35;
+  rim.penumbra = 0.5;
+  scene.add(rim);
+  scene.add(rim.target);
+
+  // Soft bottom bounce — lifts underside shadows
+  const bounce = new THREE.DirectionalLight(0xffffff, 0.7);
+  bounce.position.set(0, -3, 2);
+  scene.add(bounce);
 }
 
-export function animateEnvironment(time) {
-  // Nothing to animate — clean static white studio
+export function animateEnvironment(_time) {
+  // Static studio
 }

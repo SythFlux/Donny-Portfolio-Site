@@ -3,7 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>DTDVO — Taiwan</title>
+  <title>DTDVO — Taiwan 台灣</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;800&family=Noto+Sans+SC:wght@400;700;900&display=swap" />
   <link rel="stylesheet" href="./style.css" />
   <script type="importmap">
   {
@@ -14,54 +17,150 @@
   }
   </script>
 </head>
-<body>
-  <!-- Cinematic Overlays -->
-  <div id="cinematic-vignette"></div>
+<body data-line="R" data-stop="0">
+
+  <!-- Frame corners -->
   <div class="crosshair top-left"></div>
   <div class="crosshair top-right"></div>
   <div class="crosshair bottom-left"></div>
   <div class="crosshair bottom-right"></div>
-  
+  <div id="cinematic-vignette"></div>
+
+  <!-- ── Metro line transition overlay ────────────────────── -->
+  <!-- When navigating, a dot travels along the metro route map -->
+  <div id="metro-trans" aria-hidden="true">
+    <div class="mt-inner">
+      <div class="mt-eyebrow">[ MRT 台北捷運 · TAIPEI METRO ]</div>
+      <div class="mt-route">
+        <span id="mt-from-zh" class="mt-zh">台北車站</span>
+        <span class="mt-arrow">→</span>
+        <span id="mt-to-zh" class="mt-zh">西門</span>
+      </div>
+      <!-- Canvas-drawn metro map with animated travelling dot -->
+      <canvas id="mt-canvas" width="560" height="280" class="mt-canvas"></canvas>
+      <div id="mt-en-label" class="mt-en-label">
+        TAIPEI MAIN STATION → XIMENDING
+      </div>
+    </div>
+  </div>
+
+  <!-- Background decorative number -->
+  <div id="bg-number" aria-hidden="true">01</div>
+
+  <!-- Background Mandarin + English -->
+  <div id="bg-kanji-wrap" aria-hidden="true">
+    <div id="bg-kanji">台北車站</div>
+    <div id="bg-kanji-en">TAIPEI MAIN STATION</div>
+  </div>
+
+  <!-- Top HUD -->
   <header id="top-hud">
     <div class="hud-left">
-      <span class="rec-dot"></span> REC
-      <span class="timecode">00:00:24:12</span>
+      <span id="hud-line-badge" class="line-badge">R</span>
+      <div class="hud-line-info">
+        <span id="hud-line-zh">淡水信義線</span>
+        <span id="hud-line-en">Tamsui-Xinyi Line</span>
+      </div>
+      <span class="hud-sep">·</span>
+      <span id="hud-station-code" class="hud-station-code">R10</span>
     </div>
-    <div class="hud-center">
-    </div>
+    <div class="hud-center">DTDVO · 台灣 TAIWAN · 2025</div>
     <div class="hud-right">
-      <span class="data-block">F/2.0</span>
-      <span class="data-block">ISO 100</span>
-      <span class="data-block">4K 120FPS</span>
+      <span class="data-block">25.0330° N</span>
+      <span class="data-block">121.5654° E</span>
+      <span class="rec-block"><span class="rec-dot"></span>REC</span>
     </div>
   </header>
 
-  <!-- Hero text overlay for intro slide -->
+  <!-- Hero — pre-explore intro -->
   <div id="hero-text">
     <div class="hero-inner">
-      <span class="hero-tagline">Taiwan</span>
-      <h1 class="hero-title">Osmo 3</h1>
-      <p class="hero-desc">Precision meets elegance — the new handheld gimbal reimagined.</p>
+      <div class="hero-meta-row">
+        <span id="hero-line-badge" class="line-badge lg">R</span>
+        <span id="hero-line-label" class="hero-line-label">淡水信義線 · TAMSUI-XINYI LINE</span>
+      </div>
+      <div class="hero-station-row">
+        <div id="hero-station-zh" class="hero-station-zh">台北車站</div>
+        <div id="hero-station-en" class="hero-station-en">TAIPEI MAIN STATION</div>
+      </div>
+      <div class="hero-title-block">
+        <div id="hero-title-en" class="hero-title-en">ARRIVAL</div>
+        <h1 id="hero-title" class="hero-title">抵達</h1>
+      </div>
+      <p id="hero-desc" class="hero-desc">Landing in Taipei — the city that never sleeps. Where the adventure begins.</p>
+      <div class="hero-data-row">
+        <span class="hero-data-item">
+          <span class="hero-data-label">STOP</span>
+          <span id="hero-stop-id" class="hero-data-value">01 / 04</span>
+        </span>
+        <span class="hero-data-item">
+          <span class="hero-data-label">CODE</span>
+          <span id="hero-code-val" class="hero-data-value">R10</span>
+        </span>
+        <span class="hero-data-item">
+          <span class="hero-data-label">YEAR</span>
+          <span class="hero-data-value">2025</span>
+        </span>
+      </div>
     </div>
   </div>
 
-  <!-- Explore button for intro landing -->
-  <div id="explore-btn" class="explore-trigger">
-    <span class="btn-text">Explore</span>
+  <!-- Explore button -->
+  <div id="explore-btn">
+    <span class="btn-text">探索 EXPLORE</span>
     <span class="btn-arrow">↓</span>
   </div>
 
+  <!-- 3D viewer — city canvas sits here, same stacking context as THREE canvas -->
   <div id="viewer">
+    <canvas id="city-canvas" aria-hidden="true"></canvas>
     <div id="page-fade" class="visible"></div>
   </div>
-  <section id="timeline" class="hidden" aria-hidden="false">
+
+  <!-- Stop info panel -->
+  <aside id="stop-panel" class="sp-hidden">
+    <div class="sp-header-row">
+      <span id="sp-badge" class="line-badge lg">R</span>
+      <div class="sp-line-info">
+        <span id="sp-line-zh">淡水信義線</span>
+        <span id="sp-line-en">Tamsui-Xinyi Line</span>
+      </div>
+      <span id="sp-code" class="sp-station-code">R10</span>
+    </div>
+    <div class="sp-station-block">
+      <div id="sp-station-zh" class="sp-station-zh">台北車站</div>
+      <div id="sp-station-en" class="sp-station-en">TAIPEI MAIN STATION</div>
+    </div>
+    <div class="sp-concept-row">
+      <div id="sp-num" class="sp-num">01</div>
+      <div class="sp-concept-text">
+        <div id="sp-label-zh" class="sp-label-zh">抵達</div>
+        <div id="sp-label-en" class="sp-label-en">ARRIVAL</div>
+      </div>
+    </div>
+    <p id="sp-desc" class="sp-desc">Landing in Taipei — the city that never sleeps. Where the adventure begins.</p>
+    <div class="sp-video-wrap" id="sp-video" data-stop="01">
+      <div class="sp-video-inner">
+        <button class="sp-play-btn" aria-label="Play video">
+          <svg viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <span class="sp-video-label">VIDEO · COMING SOON</span>
+      </div>
+    </div>
+    <div class="sp-tags">
+      <span class="sp-tag">台灣 TAIWAN</span>
+      <span class="sp-tag">2025</span>
+      <span class="sp-tag">SCHOLARSHIP</span>
+    </div>
+  </aside>
+
+  <!-- Bottom timeline -->
+  <section id="timeline" class="hidden">
     <div class="tl-inner">
       <div class="track">
         <div class="track-line"></div>
-        <div class="track-marker" aria-hidden="true"></div>
-        <div class="items">
-          <!-- Dynamically generated by JS -->
-        </div>
+        <div class="track-marker"></div>
+        <div class="items"></div>
       </div>
     </div>
   </section>

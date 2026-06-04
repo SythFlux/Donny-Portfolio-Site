@@ -26,12 +26,14 @@ export class Viewer {
     });
     this.container.insertBefore(this.canvas, this.container.firstChild);
 
-    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: false });
+    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setClearColor(0x000000, 0); // transparent — city canvas shows through
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0xffffff);
+    // No background color — transparent so city scene is visible behind model
+    this.renderer.shadowMap.enabled = false;
 
     this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.05, 200);
     this.camera.position.set(0, this.VIEW.height, Math.max(0.15, this.VIEW.distance));

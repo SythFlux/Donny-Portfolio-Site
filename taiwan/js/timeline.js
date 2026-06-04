@@ -5,113 +5,137 @@ export class Timeline {
     this.itemsContainer = container.querySelector('.items');
     this.marker = container.querySelector('.track-marker');
     this.activeIndex = 0;
-    this.locked = false;
-    this.WHEEL_LOCK_MS = 180;
+    this._debounced = false;       // short debounce between wheel ticks
+    this._extLock = false;         // hard lock held by main.js during transition
+    this.DEBOUNCE_MS = 120;
     this.onProgressCb = null;
+    this.onStopChangeCb = null;
+    this._lastIndex = -999;
 
     this.render();
-    
+
     this.stops = Array.from(this.itemsContainer.querySelectorAll('.stop'));
-    this.videoStops = this.stops.filter((stop) => stop.dataset.index !== '-1' && stop.dataset.index !== String(this.data.length));
-    this.startStop = this.stops.find((stop) => stop.dataset.index === '-1');
-    this.endStop = this.stops.find((stop) => stop.dataset.index === String(this.data.length));
+    this.videoStops = this.stops.filter(
+      (s) => s.dataset.index !== '-1' && s.dataset.index !== String(this.data.length)
+    );
+    this.startStop = this.stops.find((s) => s.dataset.index === '-1');
+    this.endStop   = this.stops.find((s) => s.dataset.index === String(this.data.length));
 
     this.bindEvents();
     this.commitProgress();
   }
 
+  // Called by main.js to hard-block ALL input for the transition duration
+  lock()   { this._extLock = true; }
+  unlock() { this._extLock = false; }
+
   render() {
     this.itemsContainer.innerHTML = '';
-    
-    // START cap
+
     this.itemsContainer.insertAdjacentHTML('beforeend', `
       <div class="stop cap start" data-index="-1" aria-hidden="true">
         <span class="branch"></span>
-        <div class="rect-label">START</div>
+        <div class="cap-label">[ START ]</div>
       </div>
     `);
 
-    // Dynamic Items
     this.data.forEach((item, index) => {
       this.itemsContainer.insertAdjacentHTML('beforeend', `
         <div class="stop" data-index="${index}">
+          <div class="stop-code">${item.stationCode}</div>
           <span class="branch"></span>
-          <div class="video-thumb">
-            <div class="play-icon"></div>
+          <div class="station-plate">
+            <span class="station-zh">${item.stationName}</span>
+            <span class="station-en">${item.stationNameEn ?? item.labelEn}</span>
           </div>
-          <div class="rect-label">${item.label}</div>
         </div>
       `);
     });
 
-    // END cap
     this.itemsContainer.insertAdjacentHTML('beforeend', `
       <div class="stop cap end" data-index="${this.data.length}" aria-hidden="true">
         <span class="branch"></span>
-        <div class="rect-label">END</div>
+        <div class="cap-label">[ END ]</div>
       </div>
     `);
   }
 
-  onProgress(cb) {
-    this.onProgressCb = cb;
-  }
+  onProgress(cb)   { this.onProgressCb = cb; }
+  onStopChange(cb) { this.onStopChangeCb = cb; }
 
   commitProgress() {
-    const progress = this.videoStops.length <= 1 ? 0 : Math.max(0, Math.min(this.videoStops.length - 1, this.activeIndex)) / (this.videoStops.length - 1);
-    
+    const maxIdx = this.videoStops.length - 1;
+    const progress = maxIdx <= 0
+      ? 0
+      : Math.max(0, Math.min(this.activeIndex, maxIdx)) / maxIdx;
+
+    // Fire onStopChangeCb FIRST so main.js can set viewerBlocked=true
+    // before onProgressCb fires — otherwise the viewer starts animating too early.
+    const stopChanged = this.onStopChangeCb &&
+      this.activeIndex !== this._lastIndex &&
+      this.activeIndex >= 0 &&
+      this.activeIndex < this.videoStops.length;
+    if (stopChanged) this.onStopChangeCb(this.activeIndex);
+    this._lastIndex = this.activeIndex;
+
     if (this.onProgressCb) this.onProgressCb(progress);
     if (!this.stops.length || !this.marker || !this.itemsContainer) return;
 
     this.stops.forEach((stop) => {
-      const stopIndex = Number(stop.dataset.index);
-      stop.classList.toggle('active', stopIndex === this.activeIndex);
+      stop.classList.toggle('active', Number(stop.dataset.index) === this.activeIndex);
     });
 
-    const active = this.activeIndex < 0 ? this.startStop : this.activeIndex >= this.videoStops.length ? this.endStop : this.videoStops[this.activeIndex];
+    let active;
+    if (this.activeIndex < 0) active = this.startStop;
+    else if (this.activeIndex >= this.videoStops.length) active = this.endStop;
+    else active = this.videoStops[this.activeIndex];
     if (!active) return;
 
-    // Slide horizontally
     const activeX = active.offsetLeft + active.offsetWidth / 2;
     const trackCenter = this.container.clientWidth / 2;
-    const shift = trackCenter - activeX;
-
-    this.itemsContainer.style.transform = `translateX(${shift}px)`;
+    this.itemsContainer.style.transform = `translateX(${trackCenter - activeX}px)`;
     this.marker.style.left = `${trackCenter}px`;
   }
 
-  bindEvents() {
-    window.addEventListener('wheel', (e) => this.onWheel(e), { passive: false });
-    window.addEventListener('keydown', (e) => this.onKeyDown(e));
-  }
+  _tryMove(dir) {
+    // Block if hard-locked (transition in progress) or short-debounced
+    if (this._extLock || this._debounced) return;
 
-  onWheel(event) {
-    event.preventDefault();
-    if (this.locked) return;
-
-    const direction = Math.sign(event.deltaY);
-    if (direction === 0) return;
-
-    this.activeIndex = Math.min(this.videoStops.length, Math.max(0, this.activeIndex + direction));
+    const maxIdx = this.videoStops.length - 1;
+    let next = this.activeIndex + dir;
+    if (next > maxIdx) next = 0;        // 05 → wrap all the way back to 00
+    else next = Math.max(0, next);
+    this.activeIndex = next;
     this.commitProgress();
 
-    this.locked = true;
-    window.setTimeout(() => {
-      this.locked = false;
-    }, this.WHEEL_LOCK_MS);
+    this._debounced = true;
+    setTimeout(() => { this._debounced = false; }, this.DEBOUNCE_MS);
   }
 
-  onKeyDown(event) {
-    if (event.key === 'ArrowDown' || event.key === 'PageDown' || event.key === ' ') {
-      event.preventDefault();
-      this.activeIndex = Math.min(this.videoStops.length, this.activeIndex + 1);
+  bindEvents() {
+    window.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const dir = Math.sign(e.deltaY);
+      if (dir !== 0) this._tryMove(dir);
+    }, { passive: false });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault(); this._tryMove(1);
+      }
+      if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault(); this._tryMove(-1);
+      }
+    });
+
+    this.itemsContainer.addEventListener('click', (e) => {
+      if (this._extLock) return;
+      const stop = e.target.closest('.stop[data-index]');
+      if (!stop || stop.classList.contains('cap')) return;
+      const idx = Number(stop.dataset.index);
+      if (idx < 0 || idx >= this.videoStops.length || idx === this.activeIndex) return;
+      this.activeIndex = idx;
       this.commitProgress();
-    }
-    if (event.key === 'ArrowUp' || event.key === 'PageUp') {
-      event.preventDefault();
-      this.activeIndex = Math.max(0, this.activeIndex - 1);
-      this.commitProgress();
-    }
+    });
   }
 }
-
