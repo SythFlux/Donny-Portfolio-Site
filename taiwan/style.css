@@ -445,7 +445,8 @@ body.panel-big  .sp-expand { right: 494px; }          /* 24 + 470 */
 /* ── Map button — pulsing pill on the left rail, near the explorer.
    Mirror of the enlarge FAB; opens the interactive metro map. ── */
 .map-fab {
-  position: fixed; right: 28px; top: 58px;          /* top-right, mirrors the back button, clear of the explorer */
+  position: fixed; left: 300px; top: 42%;           /* to the right of the explorer, vertically centred with it */
+  transform: translateY(-50%);
   z-index: 116; cursor: pointer; overflow: hidden;
   display: flex; align-items: center; gap: 0;
   width: 46px; height: 46px; padding: 0; border: none; border-radius: 23px;
@@ -961,7 +962,16 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   z-index: 115;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 500ms ease 300ms, transform 500ms cubic-bezier(0.22,1,0.36,1) 300ms;
+  /* Frosted card so the line stays legible over any background scene */
+  padding: 18px 22px 18px 18px;
+  background: rgba(245,243,238,0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--lc);
+  box-shadow: 0 18px 44px -24px rgba(0,0,0,0.45);
+  transition: opacity 500ms ease 300ms,
+              transform 500ms cubic-bezier(0.22,1,0.36,1) 300ms,
+              border-left-color 400ms ease;
 }
 #explorer-panel.exp-visible {
   opacity: 1;
@@ -995,8 +1005,8 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   left: 6px;
   top: 14px;
   bottom: 14px;
-  width: 1px;
-  background: rgba(0,0,0,0.1);
+  width: 2px;
+  background: color-mix(in srgb, var(--lc) 30%, rgba(0,0,0,0.14));
   z-index: 0;
 }
 
@@ -1110,7 +1120,7 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   display: flex;
   flex-direction: column;
   gap: 2px;
-  opacity: 0.82;
+  opacity: 0.95;
   transition: opacity 280ms ease;
   min-width: 0;
 }
@@ -1156,6 +1166,7 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   body.panel-big #stop-panel { width: min(440px, 92vw); }
   body.panel-big .sp-expand  { right: min(464px, calc(92vw + 24px)); }
   #explorer-panel  { display:none; }
+  .map-fab { left: auto; right: 16px; top: auto; bottom: 206px; transform: none; }  /* explorer hidden here */
   #decals .dcl { display:none; }
   .qa-q-zh { display:none; }                 /* keep the Q&A row from crowding */
   .qa-q { gap:10px; padding:18px 16px; }
