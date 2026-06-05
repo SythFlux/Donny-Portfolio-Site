@@ -3,6 +3,7 @@ import { Viewer }              from './viewer.js';
 import { Timeline }            from './timeline.js';
 import { CityScene }           from './city.js';
 import { Explorer }            from './explorer.js';
+import { Learn }               from './learn.js';
 import { showMetroTransition, openMetroMap } from './metro.js';
 import { els, initDOMRefs, updateDOM } from './dom.js';
 import { initCursor }          from './cursor.js';
@@ -25,11 +26,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   const viewer   = new Viewer(viewerEl, config.modelUrl, config.viewDefaults, config.timelineItems);
   await viewer.init();
 
-  const heroEl     = document.getElementById('hero-text');
-  const exploreBtn = document.getElementById('explore-btn');
-  const timelineEl = document.getElementById('timeline');
-  const explorerEl = document.getElementById('explorer-panel');
-  const modelName  = document.getElementById('model-station-name');
+  const heroEl        = document.getElementById('hero-text');
+  const startMenu     = document.getElementById('start-menu');
+  const exploreBtn    = document.getElementById('explore-btn');
+  const learnBtn      = document.getElementById('learn-btn');
+  const backMenu      = document.getElementById('back-menu');
+  const backPortfolio = document.getElementById('back-portfolio');
+  const timelineEl    = document.getElementById('timeline');
+  const explorerEl    = document.getElementById('explorer-panel');
+  const modelName     = document.getElementById('model-station-name');
+  const qaView        = document.getElementById('qa-view');
+
+  const learn = new Learn(qaView, config.faq);
 
   // Side panel: click the pill to enlarge / shrink the whole panel.
   const expandBtn = document.getElementById('sp-expand');
@@ -39,14 +47,63 @@ document.addEventListener('DOMContentLoaded', async () => {
     expandBtn.querySelector('.sp-expand-txt').textContent = big ? 'SHRINK' : 'ENLARGE';
   });
 
-  exploreBtn.addEventListener('click', () => {
+  // ── Top-left nav: PORTFOLIO on the menu, BACK TO MENU inside a view ──
+  const setInExperience = (on) => {
+    backMenu.hidden = !on;
+    backPortfolio.style.display = on ? 'none' : '';
+  };
+
+  let timeline = null;          // built lazily on first "Explore"
+  let exploreReady = false;     // explore UI built once, then re-shown
+
+  // ── Return to the start menu from any experience ──────────────
+  function backToMenu() {
+    // Tear down the explore experience UI
+    timeline?.setEnabled(false);
+    timelineEl.classList.add('hidden');
+    timelineEl.classList.remove('visible');
+    explorerEl.classList.remove('exp-visible');
+    explorerEl.classList.add('exp-hidden');
+    els.panel.classList.add('sp-hidden');
+    document.body.classList.remove('panel-open');
+    modelName?.classList.remove('visible');
+    // Hide the Q&A view
+    learn.hide();
+    // Show the menu again
+    setInExperience(false);
+    startMenu.classList.remove('hidden');
+    heroEl?.classList.remove('hidden');
+  }
+  backMenu.addEventListener('click', backToMenu);
+
+  // ── Enter the "Learn about Taiwan" Q&A view ───────────────────
+  learnBtn.addEventListener('click', () => {
+    startMenu.classList.add('hidden');
     heroEl?.classList.add('hidden');
-    exploreBtn.classList.add('hidden');
-    modelName?.classList.add('visible');   // station name floats above the model
+    setInExperience(true);
+    learn.show();
+  });
+
+  // ── Enter the explore journey (timeline + explorer + panel) ───
+  exploreBtn.addEventListener('click', () => {
+    startMenu.classList.add('hidden');
+    heroEl?.classList.add('hidden');
+    setInExperience(true);
+    modelName?.classList.add('visible');
     timelineEl.classList.remove('hidden');
     timelineEl.classList.add('visible');
+    explorerEl.classList.remove('exp-hidden');
 
-    const timeline = new Timeline(timelineEl, config.timelineItems);
+    // Re-entry: the experience is already built — just re-show it.
+    if (exploreReady) {
+      timeline.setEnabled(true);
+      explorerEl.classList.add('exp-visible');
+      setTimeout(() => { els.panel.classList.remove('sp-hidden'); document.body.classList.add('panel-open'); }, 400);
+      return;
+    }
+    exploreReady = true;
+
+    timeline = new Timeline(timelineEl, config.timelineItems);
     timeline.activeIndex = 0;
     timeline.commitProgress();
 

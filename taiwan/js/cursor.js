@@ -8,22 +8,45 @@ export function initCursor() {
 
   const dot  = document.createElement('div'); dot.className  = 'cursor-dot';
   const ring = document.createElement('div'); ring.className = 'cursor-ring';
-  document.body.append(dot, ring);
+  const hint = document.createElement('div'); hint.className = 'cursor-scroll-hint'; hint.textContent = 'SCROLL';
+  document.body.append(dot, ring, hint);
 
   let mx = innerWidth / 2, my = innerHeight / 2;   // true pointer
   let rx = mx, ry = my;                            // eased ring position
 
+  // After a few idle seconds (once exploring has begun), the cursor swells into
+  // a filled "SCROLL" badge to signal that scrolling navigates the journey.
+  const IDLE_MS = 2200;
+  let idleTimer = null;
+  const wake = () => {
+    document.body.classList.remove('cursor-idle');
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      const overlayOpen = document.querySelector('#metro-map.mm-show, #metro-trans.mt-show');
+      if (document.body.classList.contains('panel-open') &&
+          !document.body.classList.contains('cursor-hover') && !overlayOpen) {
+        document.body.classList.add('cursor-idle');
+      }
+    }, IDLE_MS);
+  };
+
   addEventListener('mousemove', (e) => {
     mx = e.clientX; my = e.clientY;
-    dot.style.transform = `translate(${mx}px, ${my}px)`;
+    dot.style.transform  = `translate(${mx}px, ${my}px)`;
+    hint.style.transform = `translate(${mx}px, ${my}px) translate(-50%, -50%)`;
     if (!document.body.classList.contains('has-cursor')) document.body.classList.add('has-cursor');
+    wake();
   });
-  addEventListener('mousedown', () => document.body.classList.add('cursor-down'));
+  addEventListener('mousedown', () => { document.body.classList.add('cursor-down'); wake(); });
   addEventListener('mouseup',   () => document.body.classList.remove('cursor-down'));
+  addEventListener('wheel',     wake, { passive: true });
   addEventListener('mouseleave',() => document.body.classList.remove('has-cursor'));
 
   addEventListener('mouseover', (e) => {
-    if (e.target.closest && e.target.closest(HOVER_SEL)) document.body.classList.add('cursor-hover');
+    if (e.target.closest && e.target.closest(HOVER_SEL)) {
+      document.body.classList.add('cursor-hover');
+      document.body.classList.remove('cursor-idle');
+    }
   });
   addEventListener('mouseout', (e) => {
     if (e.target.closest && e.target.closest(HOVER_SEL)) document.body.classList.remove('cursor-hover');

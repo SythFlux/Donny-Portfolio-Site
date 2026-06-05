@@ -37,7 +37,7 @@
         <span id="mt-to-zh" class="mt-zh">西門</span>
       </div>
       <!-- Canvas-drawn metro map with animated travelling dot -->
-      <canvas id="mt-canvas" width="720" height="520" class="mt-canvas"></canvas>
+      <canvas id="mt-canvas" width="900" height="650" class="mt-canvas"></canvas>
       <div id="mt-en-label" class="mt-en-label">
         TAIPEI MAIN STATION → XIMENDING
       </div>
@@ -49,7 +49,7 @@
   <div id="metro-map" aria-hidden="true">
     <div class="mm-inner">
       <div class="mm-eyebrow">[ MRT 台北捷運 · SELECT DESTINATION ]</div>
-      <canvas id="mm-canvas" width="720" height="520" class="mm-canvas"></canvas>
+      <canvas id="mm-canvas" width="900" height="650" class="mm-canvas"></canvas>
       <div class="mm-hint"><span class="mm-hint-ico">◎</span> HOVER A STATION &nbsp;·&nbsp; CLICK TO TRAVEL</div>
     </div>
     <button id="mm-exit" class="mm-exit" aria-label="Exit map">
@@ -66,6 +66,50 @@
     </span>
     <span class="map-fab-txt">MAP</span>
   </button>
+
+  <!-- ── Learn about Taiwan — Q&A overlay ─────────────────────── -->
+  <!-- Opened from the start menu. A scrollable list of expandable cards. -->
+  <div id="qa-view" aria-hidden="true">
+    <!-- Decorative decals / abstract art behind the content -->
+    <div class="qa-decals" aria-hidden="true">
+      <span class="qa-dcl qa-glyph">問</span>
+      <span class="qa-dcl qa-d-tl">[ FAQ // 問答 ]<br>INDEX · 05 ENTRIES</span>
+      <span class="qa-dcl qa-d-coord">25.0424° N<br>121.5340° E</span>
+      <span class="qa-dcl qa-d-sys">SYS.OK — 05 RECORDS LOADED<br>台北 TAIPEI · 臺北科技大學</span>
+      <span class="qa-dcl qa-d-vr">國立臺北科技大學 · NATIONAL TAIPEI UNIVERSITY OF TECHNOLOGY</span>
+      <span class="qa-dcl qa-d-vl">DTDVO · 台灣 TAIWAN · 2025</span>
+      <span class="qa-dcl qa-plus qa-plus-1">+</span>
+      <span class="qa-dcl qa-plus qa-plus-2">+</span>
+      <span class="qa-dcl qa-plus qa-plus-3">+</span>
+      <svg class="qa-dcl qa-art" viewBox="0 0 120 170" fill="none" stroke="currentColor" stroke-width="1">
+        <circle cx="60" cy="56" r="48"/><circle cx="60" cy="56" r="31"/>
+        <path d="M4 162 L116 8"/><rect x="38" y="34" width="44" height="44"/>
+      </svg>
+    </div>
+    <div class="qa-inner">
+      <div class="qa-head">
+        <div class="qa-eyebrow">[ 了解台灣 · LEARN ABOUT TAIWAN ]</div>
+        <h2 class="qa-title">Questions &amp; Answers</h2>
+        <p class="qa-sub">Tap a question to open it.</p>
+        <div class="qa-searchwrap">
+          <span class="qa-search-ico" aria-hidden="true">⌕</span>
+          <input id="qa-search" class="qa-search" type="search" placeholder="Search questions…"
+                 aria-label="Search questions" autocomplete="off" />
+        </div>
+      </div>
+      <div id="qa-filters" class="qa-filters"><!-- line filters injected by learn.js --></div>
+      <div id="qa-list" class="qa-list"><!-- cards injected by learn.js --></div>
+    </div>
+  </div>
+
+  <!-- Photo lightbox (opens from a Q&A photo) -->
+  <div id="qa-lightbox" aria-hidden="true">
+    <figure class="qa-lb-fig">
+      <img class="qa-lb-img" alt="" />
+      <figcaption class="qa-lb-cap"></figcaption>
+    </figure>
+    <button class="qa-lb-close" type="button" aria-label="Close">✕</button>
+  </div>
 
   <!-- Background decorative number -->
   <div id="bg-number" aria-hidden="true">01</div>
@@ -114,7 +158,7 @@
       <div class="hero-data-row">
         <span class="hero-data-item">
           <span class="hero-data-label">STOP</span>
-          <span id="hero-stop-id" class="hero-data-value">01 / 04</span>
+          <span id="hero-stop-id" class="hero-data-value">01 / 06</span>
         </span>
         <span class="hero-data-item">
           <span class="hero-data-label">CODE</span>
@@ -131,18 +175,30 @@
   <!-- Left-side station explorer (shown after explore click) -->
   <nav id="explorer-panel" class="exp-hidden" aria-label="Station Explorer"></nav>
 
-  <!-- Back to main portfolio (top-left, above the explorer) -->
+  <!-- Top-left nav. On the menu: PORTFOLIO (leaves to main site). -->
+  <!-- Inside an experience (timeline / Q&A): BACK TO MENU (returns to start). -->
   <a id="back-portfolio" href="../" aria-label="Back to main portfolio">
     <span class="bp-arrow">←</span><span class="bp-text">PORTFOLIO</span>
   </a>
+  <button id="back-menu" type="button" aria-label="Back to menu" hidden>
+    <span class="bp-arrow">←</span><span class="bp-text">BACK TO MENU</span>
+  </button>
 
   <!-- Current station name, floating above the 3D model -->
   <div id="model-station-name" class="model-station-name" aria-hidden="true"></div>
 
-  <!-- Explore button -->
-  <div id="explore-btn">
-    <span class="btn-text">探索 EXPLORE</span>
-    <span class="btn-arrow">↓</span>
+  <!-- Start menu — choose to learn about Taiwan or explore the journey -->
+  <div id="start-menu">
+    <button id="learn-btn" class="menu-btn" type="button">
+      <span class="menu-btn-hint">▶ Q&amp;A · 問答</span>
+      <span class="menu-btn-text">了解台灣 · LEARN ABOUT TAIWAN</span>
+      <span class="menu-btn-arrow">→</span>
+    </button>
+    <button id="explore-btn" class="menu-btn menu-btn-primary" type="button">
+      <span class="menu-btn-hint">▶ CLICK TO BEGIN</span>
+      <span class="menu-btn-text">探索台灣 · EXPLORE TAIWAN</span>
+      <span class="menu-btn-arrow">↓</span>
+    </button>
   </div>
 
   <!-- 3D viewer — city canvas sits here, same stacking context as THREE canvas -->

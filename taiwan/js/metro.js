@@ -43,7 +43,7 @@ const MT_DONE      = 1460;
     中正紀念堂 Red  × Green        東門      Red  × Orange
     古亭      Green × Orange
 */
-const MC_W = 720, MC_H = 520;
+const MC_W = 900, MC_H = 650;
 
 // Each line is an ordered list of [col,row] grid nodes (corners included).
 const LINE_DEFS = [
@@ -52,6 +52,7 @@ const LINE_DEFS = [
   { color:'#e3001b', grid:[[7,3],[7,7],[10,7],[13,10]]           }, // Red    淡水信義線 — ↓ spine, → then ↘ to 台北101
   { color:'#008659', grid:[[1,3],[5,7],[7,7],[4,10],[1,10]]      }, // Green  松山新店線 — ↘ from 西門, through 中正, SW to 公館
   { color:'#f5a623', grid:[[13,5],[11,7],[10,7],[7,10],[4,10]]   }, // Orange 中和新蘆線 — ↙ from 象山, through 東門 & 古亭
+  { color:'#009999', grid:[[10,7],[10,11]]                       }, // Siemens 西門子線 — ↓ spur off 東門 to the SIEMENS terminus
 ];
 
 // Station (config index) → grid node it sits on.
@@ -61,6 +62,7 @@ const STA_GRID = [
   [ 1, 10],  // 2 · G07  公館     — green SW terminus
   [13,  5],  // 3 · O11  象山     — Blue × Orange interchange (east end)
   [13, 10],  // 4 · R03  台北101  — red SE terminus
+  [10, 11],  // 5 · S05  西門子 SIEMENS — Siemens line terminus (spur off 東門)
 ];
 
 // ── 2.5D isometric projection + white foundation slab ─────────
@@ -68,9 +70,9 @@ const STA_GRID = [
 // grid → screen happens. Swapping it from flat to isometric tilts the whole
 // map (lines, stations, route, traversal) into 2.5D with no other changes.
 const ISO       = { ux: 1, uy: 0.54, zh: 0.95 }; // unit step ratios (uy<ux = tilt)
-const SLAB_PAD  = 0.8;                            // how far the white block extends past the map
+const SLAB_PAD  = 1.1;                            // how far the white block extends past the map (city ring)
 const SLAB_DEPTH= 1.5;                            // block thickness (in z units)
-const MARGIN    = 10;                             // smaller = zoomed in closer
+const MARGIN    = 5;                              // smaller = zoomed in closer
 const PIN_H     = 1.15;                           // station pin height (z units)
 
 // Raw isometric (pre-fit): +z is up (toward the top of the screen).
@@ -87,12 +89,71 @@ const _ext = (() => {
 })();
 const SLAB = { c0:_ext.c0-SLAB_PAD, c1:_ext.c1+SLAB_PAD, r0:_ext.r0-SLAB_PAD, r1:_ext.r1+SLAB_PAD };
 
-// Fit the whole composition (slab top, slab bottom, pin tops) into the canvas.
+// ── City buildings ────────────────────────────────────────────
+// A full city of blocks spread across the whole slab — not just a frame.
+// Towers, apartment flats and low houses are scattered through the interior
+// AND the pad ring; each one is kept a safe clearance away from every metro
+// segment so the lines, stations and route always read on top of the city.
+// { c,r,w,d,hz, type } in grid space; type ∈ tower | flat | house.
+
+// Distance from grid point p to segment a→b (for keeping clear of the lines).
+function distPtSeg(p, a, b) {
+  const vx = b[0]-a[0], vy = b[1]-a[1];
+  const wx = p[0]-a[0], wy = p[1]-a[1];
+  const c1 = vx*wx + vy*wy;
+  if (c1 <= 0) return Math.hypot(wx, wy);
+  const c2 = vx*vx + vy*vy;
+  if (c2 <= c1) return Math.hypot(p[0]-b[0], p[1]-b[1]);
+  const t = c1 / c2;
+  return Math.hypot(p[0]-(a[0]+t*vx), p[1]-(a[1]+t*vy));
+}
+// Nearest metro segment to a grid point, across every line.
+function distToNetwork(c, r) {
+  let m = Infinity;
+  for (const { grid } of LINE_DEFS)
+    for (let i = 0; i < grid.length - 1; i++)
+      m = Math.min(m, distPtSeg([c, r], grid[i], grid[i+1]));
+  return m;
+}
+
+const BUILDINGS = (() => {
+  let seed = 9173;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  const CLEAR = 0.85;          // min grid clearance from any line to a footprint edge
+  const STEP  = 1.25;          // city-block spacing
+  const list = [];
+
+  // Sweep a jittered lattice over the whole slab; drop any block whose footprint
+  // would sit on (or too near) the metro network.
+  for (let cc = SLAB.c0 + 0.4; cc <= SLAB.c1 - 0.9; cc += STEP) {
+    for (let rr = SLAB.r0 + 0.4; rr <= SLAB.r1 - 0.9; rr += STEP) {
+      const c = cc + (rnd() - 0.5) * 0.55;
+      const r = rr + (rnd() - 0.5) * 0.55;
+      const w = 0.5 + rnd() * 0.45, d = 0.5 + rnd() * 0.45;
+      // Clearance checked against the footprint centre, padded by its half-size.
+      if (distToNetwork(c + w/2, r + d/2) < CLEAR + Math.max(w, d) * 0.5) continue;
+
+      const kind = rnd();
+      const type = kind > 0.6 ? 'tower' : kind > 0.32 ? 'flat' : 'house';
+      const hz   = type === 'tower' ? 1.0 + rnd() * 1.7
+                 : type === 'flat'  ? 0.7 + rnd() * 0.7
+                 :                     0.42 + rnd() * 0.24;
+      list.push({ c, r, w, d, hz, type });
+    }
+  }
+  return list;
+})();
+
+// Fit the whole composition (slab, pin tops, building tops) into the canvas.
 const _fit = (() => {
   const pts = [];
   const corners = [[SLAB.c0,SLAB.r0],[SLAB.c1,SLAB.r0],[SLAB.c1,SLAB.r1],[SLAB.c0,SLAB.r1]];
   corners.forEach(([c,r]) => { pts.push(rawIso(c,r,0)); pts.push(rawIso(c,r,-SLAB_DEPTH)); });
   STA_GRID.forEach(([c,r]) => pts.push(rawIso(c,r,PIN_H + 2.0))); // headroom for the floating cloud + labels
+  BUILDINGS.forEach(b => {                                        // building roofs (incl. antenna headroom)
+    const z = b.hz + (b.type === 'tower' && b.hz > 1.5 ? 0.6 : 0.1);
+    pts.push(rawIso(b.c, b.r, z)); pts.push(rawIso(b.c + b.w, b.r + b.d, z));
+  });
   let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
   pts.forEach(([x,y]) => { minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y); });
   const s  = Math.min((MC_W-2*MARGIN)/(maxX-minX), (MC_H-2*MARGIN)/(maxY-minY));
@@ -174,6 +235,7 @@ function shortestGridPath(from, to) {
   const pq   = [[0, start]];                  // tiny graph → simple array PQ is fine
 
   while (pq.length) {
+
     pq.sort((a, b) => a[0] - b[0]);
     const [d, u] = pq.shift();
     if (u === goal) break;
@@ -214,6 +276,7 @@ const LABEL_CFG = [
   { dx: -26, dy:  0, align: 'right' }, // 2 公館     — left (SW corner)
   { dx:  26, dy:  0, align: 'left'  }, // 3 象山     — right (east edge)
   { dx: -26, dy:  0, align: 'right' }, // 4 台北101  — left (off the right edge)
+  { dx:  26, dy:  2, align: 'left'  }, // 5 西門子    — right of the Siemens spur terminus
 ];
 
 // ── Path builder ──────────────────────────────────────────────
@@ -295,39 +358,70 @@ function drawSlab(ctx) {
   fillPoly(ctx, [At,Bt,Ct,Dt], '#fbfaf6', 'rgba(0,0,0,0.12)', 1.5); // white top
 }
 
-// An extruded white "building" block standing on the foundation.
-function drawBox(ctx, c, r, wc, hc, hz) {
-  const aT = proj(c, r, hz),       bT = proj(c+wc, r, hz),
-        cT = proj(c+wc, r+hc, hz), dT = proj(c, r+hc, hz);
-  const bB = proj(c+wc, r, 0), cB = proj(c+wc, r+hc, 0), dB = proj(c, r+hc, 0);
-  fillPoly(ctx, [bT,cT,cB,bB], '#e6e3da');                          // right wall
-  fillPoly(ctx, [cT,dT,dB,cB], '#d7d4ca');                          // front wall
-  fillPoly(ctx, [aT,bT,cT,dT], '#fbfaf6', 'rgba(0,0,0,0.07)', 1);   // white top
+// Bilinear point on a quad q = [TL, TR, BR, BL]; u across (TL→TR), v down (TL→BL).
+function quadUV(q, u, v) {
+  const tx = q[0][0] + (q[1][0]-q[0][0])*u, ty = q[0][1] + (q[1][1]-q[0][1])*u;
+  const bx = q[3][0] + (q[2][0]-q[3][0])*u, by = q[3][1] + (q[2][1]-q[3][1])*u;
+  return [ tx + (bx-tx)*v, ty + (by-ty)*v ];
 }
 
-// Taipei landscape: low white city blocks framing the map, kept in the pad
-// ring (relative to the slab) and away from the busy front/right of the map.
-// [col, row, widthCols, depthRows, height].
-const _pb = SLAB_PAD * 0.6;
-const LAND_BLOCKS = [
-  // back skyline (top edge, behind the network)
-  [ SLAB.c0 + 1.5, SLAB.r0 + SLAB_PAD*0.18, _pb*1.2, _pb, 0.5  ],
-  [ SLAB.c0 + 4.5, SLAB.r0 + SLAB_PAD*0.10, _pb*1.2, _pb, 0.72 ],
-  [ SLAB.c0 + 7.5, SLAB.r0 + SLAB_PAD*0.18, _pb*1.2, _pb, 0.55 ],
-  [ SLAB.c0 + 10.5,SLAB.r0 + SLAB_PAD*0.12, _pb*1.2, _pb, 0.66 ],
-  [ SLAB.c0 + 13.0,SLAB.r0 + SLAB_PAD*0.18, _pb,     _pb, 0.5  ],
-  // left (west) edge
-  [ SLAB.c0 + SLAB_PAD*0.2, SLAB.r0 + 5.5, _pb, _pb*1.2, 0.55 ],
-  [ SLAB.c0 + SLAB_PAD*0.2, SLAB.r0 + 8.0, _pb, _pb*1.2, 0.45 ],
-  // right-back corner
-  [ SLAB.c1 - SLAB_PAD*0.2 - _pb, SLAB.r0 + 1.5, _pb, _pb*1.2, 0.6 ],
-];
+// A grid of windows painted onto one extruded wall (a quad). cols/rows scale
+// with the wall's real size; a sprinkling of warm "lit" panes adds life.
+function drawWindows(ctx, q, cols, rows, lz) {
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const lit = (((c * 7 + r * 13 + lz) % 5) === 0);
+      fillPoly(ctx, [
+        quadUV(q, (c+0.28)/cols, (r+0.22)/rows), quadUV(q, (c+0.72)/cols, (r+0.22)/rows),
+        quadUV(q, (c+0.72)/cols, (r+0.74)/rows), quadUV(q, (c+0.28)/cols, (r+0.74)/rows),
+      ], lit ? 'rgba(255,214,130,0.9)' : 'rgba(96,120,146,0.32)');
+    }
+  }
+}
+
+// One extruded building: shaded east/south walls, a window grid, and either a
+// pitched roof + door (house) or a flat roof + antenna warning light (tower).
+function drawBuilding(ctx, b) {
+  const { c, r, w, d, hz, type } = b;
+  const aT = proj(c, r, hz),     bT = proj(c+w, r, hz),
+        cT = proj(c+w, r+d, hz), dT = proj(c, r+d, hz);
+  const bB = proj(c+w, r, 0), cB = proj(c+w, r+d, 0), dB = proj(c, r+d, 0);
+  const right = [bT, cT, cB, bB];   // east wall
+  const front = [cT, dT, dB, cB];   // south wall
+
+  fillPoly(ctx, right, '#e6e3da');
+  fillPoly(ctx, front, '#d7d4ca');
+
+  if (type === 'house') {
+    const rh = hz * 0.45 + 0.2;
+    const ridgeW = proj(c, r+d/2, hz+rh), ridgeE = proj(c+w, r+d/2, hz+rh);
+    fillPoly(ctx, [bT, ridgeE, cT],         '#cbc7bd', 'rgba(0,0,0,0.10)', 1); // east gable
+    fillPoly(ctx, [dT, ridgeW, ridgeE, cT], '#b6b1a5', 'rgba(0,0,0,0.12)', 1); // south slope
+    fillPoly(ctx, [quadUV(front,0.42,0.50),quadUV(front,0.64,0.50),quadUV(front,0.64,0.97),quadUV(front,0.42,0.97)], 'rgba(70,65,60,0.55)');   // door
+    fillPoly(ctx, [quadUV(front,0.12,0.32),quadUV(front,0.34,0.32),quadUV(front,0.34,0.64),quadUV(front,0.12,0.64)], 'rgba(96,120,146,0.42)'); // window
+    return;
+  }
+
+  fillPoly(ctx, [aT,bT,cT,dT], '#fbfaf6', 'rgba(0,0,0,0.07)', 1);              // flat roof
+  const lz = Math.floor((c + r) * 4) & 7;
+  drawWindows(ctx, right, Math.max(2, Math.round(d*4)), Math.max(2, Math.round(hz*3)), lz);
+  drawWindows(ctx, front, Math.max(2, Math.round(w*4)), Math.max(2, Math.round(hz*3)), lz+2);
+
+  if (type === 'tower' && hz > 1.5) {
+    const baseTop = proj(c + w/2, r + d/2, hz), tip = proj(c + w/2, r + d/2, hz + 0.55);
+    ctx.strokeStyle = 'rgba(40,40,40,0.55)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(baseTop[0], baseTop[1]); ctx.lineTo(tip[0], tip[1]); ctx.stroke();
+    const blink = 0.4 + 0.6 * Math.abs(Math.sin(performance.now() * 0.004 + c));
+    ctx.beginPath(); ctx.arc(tip[0], tip[1], 2.2, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(227,0,27,${blink})`; ctx.fill();
+  }
+}
 
 function drawLandscape(ctx) {
-  // City blocks, back-to-front so nearer ones overlap farther ones.
-  [...LAND_BLOCKS]
-    .sort((a, b) => (a[0]+a[1]) - (b[0]+b[1]))
-    .forEach(([c,r,wc,hc,hz]) => drawBox(ctx, c, r, wc, hc, hz));
+  // Buildings, back-to-front so nearer ones overlap farther ones.
+  [...BUILDINGS]
+    .sort((a, b) => (a.c+a.r) - (b.c+b.r))
+    .forEach(b => drawBuilding(ctx, b));
 
   // English region labels (billboard, faint watermark).
   const region = (en, c, r) => {
@@ -413,7 +507,7 @@ function drawMetroFrame(ctx, fromIdx, toIdx, progress) {
     ctx.stroke();
   };
 
-  // 1) White foundation block + Taipei landscape (water, regions, compass).
+  // 1) White foundation block + Taipei landscape (regions, compass).
   drawSlab(ctx);
   drawLandscape(ctx);
 
@@ -535,7 +629,14 @@ export function openMetroMap(currentIdx, onSelect) {
   };
   const onClick = (e) => {
     const idx = pickStation(e.clientX, e.clientY);
-    if (idx >= 0) { close(); onSelect(idx); }
+    if (idx < 0) return;
+    // Seamless hand-off: launch the trip (its overlay fades in ON TOP of the map),
+    // stop interaction now, then drop the map once it's hidden behind the trip.
+    onSelect(idx);
+    canvas.removeEventListener('mousemove', onMove);
+    canvas.removeEventListener('click', onClick);
+    document.body.classList.remove('cursor-hover');
+    setTimeout(close, 320);
   };
   const onKey = (e) => { if (e.key === 'Escape') close(); };
 

@@ -78,8 +78,13 @@ export function updateDOM(index, city) {
 
   if (els.modelName) {
     els.modelName.style.color = item.lineColor;
+    // Most stops lead with the big Mandarin name; some (e.g. SIEMENS) lead with
+    // the English name as a bold "logo", with the Mandarin small + grey beneath.
+    const enFirst = item.nameEmphasis === 'en';
+    const big   = enFirst ? item.stationNameEn.toUpperCase() : item.stationName;
+    const small = enFirst ? item.stationName : item.stationNameEn.toUpperCase();
     els.modelName.innerHTML =
-      `<span class="msn-zh">${item.stationName}</span>` +
-      `<span class="msn-en">${item.stationNameEn.toUpperCase()}</span>`;
+      `<span class="msn-zh${enFirst ? ' msn-latin' : ''}">${big}</span>` +
+      `<span class="msn-en">${small}</span>`;
   }
 }

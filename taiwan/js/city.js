@@ -4,7 +4,8 @@
  *  'village' - pine trees + fixed houses            (Stop 01)
  *  'runway'  - flat 2D airport + silhouette plane   (Stop 02)
  *  'mountain'- mountain + forest + city lights      (Stop 03)
- *  'city'    - urban skyline + moving people        (Stop 05)
+ *  'city'    - urban skyline + moving people        (Stop 04)
+ *  'industrial' - factory + cranes + smoke          (Stop 05 · Siemens)
  */
 export class CityScene {
   constructor(canvas) {
@@ -69,11 +70,12 @@ export class CityScene {
 
     // Per-scene motion flavour — each stop animates a bit differently.
     const flavour = {
-      design:  { orbit: 0.5,  drift:[ 0.16,-0.05] },
-      village: { orbit: 0.3,  drift:[-0.10,-0.13] },
-      runway:  { orbit: 0.85, drift:[ 0.22, 0.00] },
-      mountain:{ orbit: 0.22, drift:[ 0.00,-0.09] },
-      city:    { orbit: 0.45, drift:[-0.18,-0.04] },
+      design:    { orbit: 0.5,  drift:[ 0.16,-0.05] },
+      village:   { orbit: 0.3,  drift:[-0.10,-0.13] },
+      runway:    { orbit: 0.85, drift:[ 0.22, 0.00] },
+      mountain:  { orbit: 0.22, drift:[ 0.00,-0.09] },
+      city:      { orbit: 0.45, drift:[-0.18,-0.04] },
+      industrial:{ orbit: 0.28, drift:[ 0.10,-0.05] },
     }[this.type] || { orbit: 0.4, drift:[0.12,-0.06] };
     this._s.orbit = flavour.orbit;
     // Drifting motes (kept only for the orange/mountain scene — "good as is").
@@ -156,6 +158,29 @@ export class CityScene {
         return { x, w, h, y:GY-h, c };
       });
       if (!this._s.cityPeople) this._s.cityPeople = this._makePeople(8, GY, 1.0);
+    }
+
+    if (this.type === 'industrial') {
+      // Factory hall + the smokestack the puffs rise from (kept clear of the
+      // left explorer rail).
+      this._s.factoryX = W*0.18;
+      this._s.stackX   = W*0.205;
+      this._s.stackY   = GY - 190*hs;
+      // Big tower under construction (centre) that the cranes work on.
+      this._s.tower = { x: W*0.55, w: 150*hs, h: 300*hs };
+      // Tower cranes (mast + slewing jib + swinging load).
+      this._s.cranes = [
+        { x: W*0.43, mast: 250*hs, jib: 150*hs, counter: 55*hs, sp: 0.16, dir: 1,  ph: 0.4 },
+        { x: W*0.80, mast: 340*hs, jib: 215*hs, counter: 82*hs, sp: 0.11, dir: -1, ph: 1.9 },
+      ];
+      // Rising smoke from the stack.
+      this._s.smoke = Array.from({ length: 14 }, () => ({
+        x: W*0.205 + (Math.random()-0.5)*12,
+        y: (GY - 190*hs) - Math.random()*150,
+        vy: -(0.25 + Math.random()*0.35),
+        vx: 0.08 + Math.random()*0.14,
+        r: 7 + Math.random()*12, ph: Math.random()*Math.PI*2,
+      }));
     }
   }
 
@@ -461,6 +486,142 @@ export class CityScene {
     for (const p of this._s.cityPeople??[]) this._person(ctx,p,t,GY);
   }
 
+  /* ── INDUSTRIAL (Siemens) ──────────────────────────────────────
+     Big factory + smokestacks, a tower under construction, and tower
+     cranes whose jibs slew while a trolley + load swing on the cable. */
+  _crane(cr, t) {
+    const { ctx, GY } = this;
+    const topY = GY - cr.mast, mw = 12;
+
+    // Lattice mast
+    ctx.strokeStyle = this._col('dark'); ctx.lineWidth = 2;
+    ctx.strokeRect(cr.x - mw/2, topY, mw, cr.mast);
+    ctx.lineWidth = 1;
+    for (let y = topY; y < GY - 10; y += 22) {
+      ctx.beginPath();
+      ctx.moveTo(cr.x - mw/2, y); ctx.lineTo(cr.x + mw/2, Math.min(GY, y + 22));
+      ctx.moveTo(cr.x + mw/2, y); ctx.lineTo(cr.x - mw/2, Math.min(GY, y + 22));
+      ctx.stroke();
+    }
+
+    // Slewing jib assembly — rotates gently around the mast top.
+    ctx.save();
+    ctx.translate(cr.x, topY);
+    ctx.rotate(Math.sin(t * cr.sp + cr.ph) * 0.05 * cr.dir);
+
+    // Operator cab
+    ctx.fillStyle = this.lc; ctx.fillRect(-10, -2, 20, 16);
+
+    // Counter-jib + counterweight (short side)
+    ctx.strokeStyle = this._col('dark'); ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(0, 4); ctx.lineTo(-cr.counter, 4); ctx.stroke();
+    ctx.fillStyle = this._col('dark'); ctx.fillRect(-cr.counter - 6, -2, 16, 20);
+
+    // Main jib (long side) + A-frame ties + lattice zigzag
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(0, 2); ctx.lineTo(cr.jib, 2); ctx.stroke();
+    ctx.lineWidth = 1.1;
+    ctx.beginPath();
+    ctx.moveTo(0, -20); ctx.lineTo(cr.jib * 0.92, 2);
+    ctx.moveTo(0, -20); ctx.lineTo(-cr.counter * 0.92, 2);
+    ctx.moveTo(0, -20); ctx.lineTo(0, 2); ctx.stroke();
+    ctx.lineWidth = 0.8;
+    for (let x = 10; x < cr.jib - 8; x += 16) {
+      ctx.beginPath(); ctx.moveTo(x, 2); ctx.lineTo(x + 8, -6); ctx.lineTo(x + 16, 2); ctx.stroke();
+    }
+
+    // Trolley sliding along the jib, with a cable + swinging load block.
+    const trX = 34 + (cr.jib - 56) * (0.5 + 0.5 * Math.sin(t * cr.sp * 1.7 + cr.ph));
+    ctx.fillStyle = this._col('dark'); ctx.fillRect(trX - 5, 0, 10, 7);
+    const sway = Math.sin(t * 1.3 + cr.ph) * 0.13;
+    const cable = 64 + 22 * Math.sin(t * 0.5 + cr.ph);
+    const hx = trX + Math.sin(sway) * cable, hy = 7 + Math.cos(sway) * cable;
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(trX, 7); ctx.lineTo(hx, hy); ctx.stroke();
+    ctx.fillStyle = this.lc; ctx.fillRect(hx - 12, hy, 24, 14);
+    ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = 1; ctx.strokeRect(hx - 11.5, hy + 0.5, 23, 13);
+
+    ctx.restore();
+
+    // Blinking warning light at the apex
+    const blink = 0.4 + 0.6 * Math.abs(Math.sin(t * 2.5 + cr.ph));
+    ctx.beginPath(); ctx.arc(cr.x, topY - 20, 3.5, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(227,0,27,${blink})`; ctx.fill();
+  }
+
+  _drawIndustrial(t) {
+    const { ctx, W, GY } = this;
+    const hs = Math.min(1, this.H / 900);
+
+    // Rising smoke from the stack (behind the buildings).
+    const top = GY - 360;
+    for (const s of this._s.smoke ?? []) {
+      s.y += s.vy; s.x += s.vx + Math.sin(t * 0.5 + s.ph) * 0.15;
+      if (s.y < top) { s.y = this._s.stackY; s.x = this._s.stackX + (Math.random()-0.5)*12; }
+      const fade = Math.max(0, Math.min(1, (s.y - top) / (this._s.stackY - top)));
+      ctx.save();
+      ctx.globalAlpha = 0.12 * fade;
+      ctx.fillStyle = 'rgba(70,70,70,1)';
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    // Factory hall with a north-light (sawtooth) roof.
+    const fx = this._s.factoryX, fh = 150*hs, fw = 250*hs, fy = GY - fh;
+    ctx.fillStyle = this._col('dark'); ctx.fillRect(fx, fy, fw, fh);
+    ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1; ctx.strokeRect(fx+.5, fy+.5, fw-1, fh-1);
+    const teeth = 6, tw = fw / teeth;
+    for (let i = 0; i < teeth; i++) {
+      const x = fx + i*tw;
+      ctx.fillStyle = this._col('dark');
+      ctx.beginPath(); ctx.moveTo(x, fy); ctx.lineTo(x, fy-18); ctx.lineTo(x+tw, fy); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = this.lc + '55';                                   // glazed face
+      ctx.beginPath(); ctx.moveTo(x, fy); ctx.lineTo(x, fy-18); ctx.lineTo(x+3, fy-16); ctx.lineTo(x+3, fy); ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.10)';                           // hall windows
+    const cols = 6, cw = (fw-24)/cols;
+    for (let r = 0; r < 2; r++) for (let c = 0; c < cols; c++)
+      ctx.fillRect(fx+12+c*cw, fy+26+r*44, cw-12, 26);
+
+    // Two smokestacks with warning bands.
+    const stack = (sx, sh) => {
+      ctx.fillStyle = this._col('dark'); ctx.fillRect(sx-9, GY-sh, 18, sh);
+      ctx.fillStyle = this.lc;            ctx.fillRect(sx-9, GY-sh+12, 18, 6);
+      ctx.fillStyle = 'rgba(227,0,27,0.7)'; ctx.fillRect(sx-9, GY-sh+26, 18, 4);
+    };
+    stack(this._s.stackX,            190*hs);
+    stack(this._s.stackX + 34*hs,    150*hs);
+
+    // Tower under construction — solid (glazed) lower floors, steel frame on top.
+    const tw2 = this._s.tower, tx = tw2.x, th = tw2.h, twd = tw2.w, ty = GY - th;
+    const solidH = th * 0.62, frameTop = ty;            // top 38% is open frame
+    const solidTop = GY - solidH;
+    ctx.fillStyle = this._col('line'); ctx.fillRect(tx, solidTop, twd, solidH);
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)'; ctx.lineWidth = 1; ctx.strokeRect(tx+.5, solidTop+.5, twd-1, solidH-1);
+    ctx.fillStyle = 'rgba(0,0,0,0.1)';                  // windows
+    const tc = Math.max(2, Math.floor(twd/26)), tr = Math.max(2, Math.floor(solidH/30));
+    const hg = twd/(tc+1), vg = solidH/(tr+1);
+    for (let r = 1; r <= tr; r++) for (let c = 1; c <= tc; c++)
+      ctx.fillRect(tx + c*hg - 5, solidTop + r*vg - 6, 10, 12);
+    // Steel frame (unfinished floors) above the solid part.
+    ctx.strokeStyle = 'rgba(0,0,0,0.32)'; ctx.lineWidth = 1.4;
+    const fcols = 3, frh = solidTop - frameTop;
+    for (let c = 0; c <= fcols; c++) {
+      const x = tx + c*(twd/fcols);
+      ctx.beginPath(); ctx.moveTo(x, frameTop); ctx.lineTo(x, solidTop); ctx.stroke();
+    }
+    for (let y = frameTop; y <= solidTop; y += Math.max(18, frh/4)) {
+      ctx.beginPath(); ctx.moveTo(tx, y); ctx.lineTo(tx+twd, y); ctx.stroke();
+    }
+    ctx.fillStyle = this.lc;                            // top edge accent
+    ctx.fillRect(tx-2, frameTop-3, twd+4, 4);
+
+    this._groundLine(ctx);
+
+    // Cranes last so they sit over the structures.
+    for (const cr of this._s.cranes ?? []) this._crane(cr, t);
+  }
+
   _draw(ts) {
     const {ctx,W,H}=this;
     const t=ts*.001;
@@ -472,6 +633,7 @@ export class CityScene {
       case 'runway':   this._drawRunway(t);   break;
       case 'mountain': this._drawMountain(t); break;
       case 'city':     this._drawCity(t);     break;
+      case 'industrial': this._drawIndustrial(t); break;
     }
     this._weatherFx(t);   // rain / leaves in front of the scene
   }

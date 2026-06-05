@@ -9,6 +9,8 @@ const MINOR_STATIONS = [
   [ { name: 'Taipower Bldg', code: 'G08'  }, { name: 'Guting',       code: 'O05'  } ],
   // 象山 → 台北101
   [ { name: 'Xinyi Anhe',    code: 'R04'  }, { name: 'Daan',         code: 'R05'  } ],
+  // 台北101 → 西門子 (SIEMENS)
+  [ { name: 'World Trade Ctr', code: 'BL18' }, { name: 'Nangang',     code: 'BL19' } ],
 ];
 
 export class Explorer {

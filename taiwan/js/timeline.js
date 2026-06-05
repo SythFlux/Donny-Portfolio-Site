@@ -7,6 +7,7 @@ export class Timeline {
     this.activeIndex = 0;
     this._debounced = false;       // short debounce between wheel ticks
     this._extLock = false;         // hard lock held by main.js during transition
+    this.enabled = true;           // false on the menu / Q&A view → ignore scroll+keys
     this.DEBOUNCE_MS = 120;
     this.onProgressCb = null;
     this.onStopChangeCb = null;
@@ -28,6 +29,10 @@ export class Timeline {
   // Called by main.js to hard-block ALL input for the transition duration
   lock()   { this._extLock = true; }
   unlock() { this._extLock = false; }
+
+  // Enable/disable the whole timeline (scroll + keys). When disabled it stops
+  // hijacking the wheel so other views (the Q&A page) can scroll normally.
+  setEnabled(on) { this.enabled = on; }
 
   // Set active station from outside without firing onStopChange callback
   setActive(idx) {
@@ -121,12 +126,14 @@ export class Timeline {
 
   bindEvents() {
     window.addEventListener('wheel', (e) => {
+      if (!this.enabled) return;           // let the page (e.g. Q&A) scroll
       e.preventDefault();
       const dir = Math.sign(e.deltaY);
       if (dir !== 0) this._tryMove(dir);
     }, { passive: false });
 
     window.addEventListener('keydown', (e) => {
+      if (!this.enabled) return;
       if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
         e.preventDefault(); this._tryMove(1);
       }

@@ -44,7 +44,9 @@ export class Viewer {
     this.canvas.id = 'gl-canvas';
     Object.assign(this.canvas.style, {
       position: 'absolute', inset: '0', width: '100%', height: '100%', zIndex: '60',
-      opacity: '0', transition: 'opacity 1100ms ease'   // smooth fade-in once loaded
+      // Same entrance feel as the hero text (heroRise): fade + gentle upward rise.
+      opacity: '0', transform: 'translateY(22px)',
+      transition: 'opacity 850ms cubic-bezier(0.22,1,0.36,1), transform 850ms cubic-bezier(0.22,1,0.36,1)'
     });
     this.container.insertBefore(this.canvas, this.container.firstChild);
 
@@ -114,8 +116,12 @@ export class Viewer {
     }
 
     this.animate();
-    // Reveal the model on the next frame (after it has rendered once).
-    requestAnimationFrame(() => { this.canvas.style.opacity = '1'; });
+    // Reveal the model on the next frame (after it has rendered once) — fades
+    // and rises into place like the hero text.
+    requestAnimationFrame(() => {
+      this.canvas.style.opacity = '1';
+      this.canvas.style.transform = 'translateY(0)';
+    });
   }
 
   onResize() {
