@@ -2,7 +2,13 @@
    cursor.js — Custom dot + trailing ring cursor
    ═══════════════════════════════════════════════════════════════════ */
 
+import { isTouch } from './device.js';
+
 export function initCursor() {
+  // No custom cursor on touch devices — it's hidden via CSS, so skip the
+  // extra RAF loop and pointer listeners entirely.
+  if (isTouch) return;
+
   const dot  = document.getElementById('cursor-dot');
   const ring = document.getElementById('cursor-ring');
   if (!dot || !ring) return;

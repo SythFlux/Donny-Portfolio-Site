@@ -9,6 +9,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { ShaderPass }      from 'three/addons/postprocessing/ShaderPass.js';
 import { BokehPass }       from 'three/addons/postprocessing/BokehPass.js';
 import { renderer, scene, camera } from './scene.js';
+import { isMobile }        from './device.js';
 
 let composer;
 let bloomPass;
@@ -53,12 +54,17 @@ export function initPostProcessing() {
   bloomPass = new UnrealBloomPass(size, 0.1, 0.4, 1.4);
   composer.addPass(bloomPass);
 
-  bokehPass = new BokehPass(scene, camera, {
-    focus:    22.0,
-    aperture: 0.0,
-    maxblur:  0.004,
-  });
-  composer.addPass(bokehPass);
+  // Depth-of-field (bokeh) is the most expensive pass and a common source of
+  // frame-rate flicker on mobile GPUs — skip it there. setDofFocus() already
+  // no-ops when bokehPass is absent.
+  if (!isMobile) {
+    bokehPass = new BokehPass(scene, camera, {
+      focus:    22.0,
+      aperture: 0.0,
+      maxblur:  0.004,
+    });
+    composer.addPass(bokehPass);
+  }
 
   const vignette = new ShaderPass(VignetteShader);
   composer.addPass(vignette);

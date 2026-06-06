@@ -7,6 +7,7 @@ import { blobs }    from './orbs.js';
 import { camera }   from './scene.js';
 import { PROJECTS } from './config.js';
 import { getAccentColors, isDark } from './darkmode.js';
+import { dpr, isMobile, quality } from './device.js';
 import * as THREE   from 'three';
 
 /* ── Canvas setup ─────────────────────────────────────────────────── */
@@ -142,13 +143,15 @@ function generateAmbientElements() {
       if (Math.random() < 0.35)
         gridDots.push({ x, y, phase: rand(0, 6.28), speed: rand(0.5, 2), size: rand(0.8, 2) });
 
-  dataFragments = Array.from({ length: 25 }, makeDataFragment);
-  scanLines     = Array.from({ length: 7 },  makeScanLine);
-  dataStreams   = Array.from({ length: 60 }, makeStreamParticle);
-  hexCascades   = Array.from({ length: 12 },  makeHexCascade);
-  glitchBlocks  = Array.from({ length: 20 }, makeGlitchBlock);
-  pulsingRings  = Array.from({ length: 10 },  makePulsingRing);
-  floatingNums  = Array.from({ length: 40 }, makeFloatingNumber);
+  // Scale decorative element counts by device quality (fewer on mobile)
+  const q = (n) => Math.max(1, Math.round(n * quality));
+  dataFragments = Array.from({ length: q(25) }, makeDataFragment);
+  scanLines     = Array.from({ length: q(7) },  makeScanLine);
+  dataStreams   = Array.from({ length: q(60) }, makeStreamParticle);
+  hexCascades   = Array.from({ length: q(12) }, makeHexCascade);
+  glitchBlocks  = Array.from({ length: q(20) }, makeGlitchBlock);
+  pulsingRings  = Array.from({ length: q(10) }, makePulsingRing);
+  floatingNums  = Array.from({ length: q(40) }, makeFloatingNumber);
   signalWave    = new Array(120).fill(0);
 }
 
@@ -158,11 +161,11 @@ function generateAmbientElements() {
 export function resizeHud() {
   W = window.innerWidth;
   H = window.innerHeight;
-  canvas.width  = W * devicePixelRatio;
-  canvas.height = H * devicePixelRatio;
+  canvas.width  = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
   canvas.style.width  = W + 'px';
   canvas.style.height = H + 'px';
-  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   generateAmbientElements();
 }
 
@@ -636,8 +639,14 @@ function drawNoise(color) {
 /* ══════════════════════════════════════════════════════════════════
    MAIN TICK
    ══════════════════════════════════════════════════════════════════ */
-function tick() {
+// On mobile, run the decorative HUD at ~30fps instead of 60 to halve its cost.
+const HUD_FRAME_MS = isMobile ? 1000 / 30 : 0;
+let _hudLast = 0;
+
+function tick(now = 0) {
   rafId = requestAnimationFrame(tick);
+  if (HUD_FRAME_MS && now - _hudLast < HUD_FRAME_MS) return;
+  _hudLast = now;
   elapsed += 1 / 60;
 
   // Lerp focus intensity
@@ -684,6 +693,6 @@ function tick() {
 /* ── Init ─────────────────────────────────────────────────────────── */
 export function initHud() {
   resizeHud();
-  canvas.classList.add('active');   // always visible
-  tick();                           // start immediately
+  canvas.classList.add('active');          // always visible
+  rafId = requestAnimationFrame(tick);     // start immediately
 }

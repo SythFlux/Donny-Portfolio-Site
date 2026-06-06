@@ -4,11 +4,14 @@
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { isTouch, pixelRatioCap } from './device.js';
 
 // ── Renderer ─────────────────────────────────────────────────────────
-export const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+// antialias is disabled on touch devices — it's a costly full-screen pass and
+// the pixel-ratio clamp already keeps edges acceptable on small screens.
+export const renderer = new THREE.WebGLRenderer({ antialias: !isTouch, alpha: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, pixelRatioCap));
 renderer.setClearColor(0xf0f0f4);
 document.body.appendChild(renderer.domElement);
 
@@ -40,6 +43,20 @@ controls.mouseButtons   = {
   MIDDLE: THREE.MOUSE.DOLLY,
   RIGHT:  THREE.MOUSE.PAN,
 };
+
+// Touch gestures: one finger orbits, two fingers pinch-zoom & pan.
+controls.touches = {
+  ONE: THREE.TOUCH.ROTATE,
+  TWO: THREE.TOUCH.DOLLY_PAN,
+};
+
+// On touch, slow the orbit a touch and firm up damping so dragging to
+// "look around" feels controlled instead of flingy.
+if (isTouch) {
+  controls.rotateSpeed = 0.55;
+  controls.zoomSpeed   = 0.8;
+  controls.dampingFactor = 0.12;
+}
 
 // ── Lighting ─────────────────────────────────────────────────────────
 scene.add(new THREE.AmbientLight(0xffffff, 0.4));

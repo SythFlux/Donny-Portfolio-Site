@@ -8,6 +8,7 @@ import { blobs }            from './orbs.js';
 import { renderer, camera } from './scene.js';
 import { openProject, closePanel, state as panelState, redirectToUrl } from './panel.js';
 import { playHover, playClick, playClose, resumeAudio } from './sound.js';
+import { isTouch } from './device.js';
 
 const rc    = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
@@ -17,11 +18,29 @@ let hoveredBlob = null;
 
 let navIdx = 0; // current keyboard-selected orb index
 
+// Touch gesture tracking — used to tell a real "tap" apart from a drag/orbit.
+// Without this, orbiting the camera registers as a tap and opens a panel,
+// which makes the orbs feel impossible to drag/look around on mobile.
+let touchStart = null;       // { x, y, time } of a single-finger touchstart
+const TAP_MOVE_PX  = 14;     // movement beyond this = drag, not a tap
+const TAP_TIME_MS  = 500;    // held longer than this = not a tap
+
 export function initInteraction() {
+  // Touch devices have no right-click / scroll-wheel — rewrite the hint to
+  // describe the gestures that actually work.
+  if (isTouch) {
+    const hint = document.getElementById('hover-hint');
+    if (hint) {
+      hint.innerHTML =
+        'Tap an orb to explore &nbsp;·&nbsp; Drag to orbit &nbsp;·&nbsp; Pinch to zoom';
+    }
+  }
+
   renderer.domElement.addEventListener('pointermove', onPointerMove);
   renderer.domElement.addEventListener('click', onClick);
 
   // On touch devices, handle tap directly (no hover state)
+  renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: true });
   renderer.domElement.addEventListener('touchend', onTouchTap, { passive: true });
 
   // Resume audio context on first interaction (browser policy)
@@ -165,20 +184,44 @@ function onClick(e) {
   }
 }
 
+/** Record where a single-finger touch began so we can detect a tap vs a drag */
+function onTouchStart(e) {
+  // Multi-finger gestures (pinch-zoom / two-finger pan) are never taps
+  if (e.touches.length !== 1) { touchStart = null; return; }
+  const t = e.touches[0];
+  touchStart = { x: t.clientX, y: t.clientY, time: performance.now() };
+}
+
 /** Touch handler for mobile — raycast on tap since there's no hover */
 function onTouchTap(e) {
   if (!e.changedTouches || !e.changedTouches.length) return;
+
+  // Ignore if other fingers are still down (mid-gesture)
+  if (e.touches && e.touches.length > 0) { touchStart = null; return; }
+
   const touch = e.changedTouches[0];
+
+  // Only treat this as a tap if the finger barely moved and was brief.
+  // A larger move / longer hold means the user was orbiting or panning.
+  const start = touchStart;
+  touchStart = null;
+  if (!start) return;
+  const moved = Math.hypot(touch.clientX - start.x, touch.clientY - start.y);
+  const held  = performance.now() - start.time;
+  const isTap = moved < TAP_MOVE_PX && held < TAP_TIME_MS;
+
   mouse.x =  (touch.clientX / window.innerWidth)  * 2 - 1;
   mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
 
-  // Close panel if tapping outside it
+  // Close panel if tapping outside it (allow even a slightly looser tap here)
   if (panelState.panelOpen) {
     const panel = document.getElementById('detail-panel');
     const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    if (!panel.contains(el)) closePanel();
+    if (isTap && !panel.contains(el)) closePanel();
     return;
   }
+
+  if (!isTap) return; // it was a drag/orbit — leave the camera be
 
   rc.setFromCamera(mouse, camera);
   const hits = rc.intersectObjects(blobs.map(b => b.hitMesh));

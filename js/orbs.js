@@ -7,6 +7,7 @@ import { scene }              from './scene.js';
 import { parallaxGroup }      from './parallax.js';
 import { PROJECTS, ORB_ORIGINS } from './config.js';
 import { shDeform, randomCoeffs } from './harmonics.js';
+import { isMobile, dpr } from './device.js';
 
 /** All blob state objects live here */
 export const blobs = [];
@@ -22,7 +23,7 @@ function makeDotMaterial(color) {
       uColor:      { value: new THREE.Color(color) },
       uOpacity:    { value: 1.0 },
       uPointSize:  { value: 1.0 },
-      uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+      uPixelRatio: { value: dpr },
       // Wave ripple uniforms
       uHitPoint:   { value: new THREE.Vector3(0, 0, 0) },
       uWaveTime:   { value: -10.0 },  // negative = no active wave
@@ -326,7 +327,11 @@ function makeDottedLabel(text, color, dotSize) {
  */
 export function createOrbs() {
   PROJECTS.forEach((proj, idx) => {
-    const seg   = 44 + Math.floor(Math.random() * 12); // clean dot grid, ~2000 vertices
+    // Fewer segments on mobile → roughly half the vertices to morph each frame
+    // on the CPU and far fewer points for the GPU to draw.
+    const seg   = isMobile
+      ? 26 + Math.floor(Math.random() * 8)   // ~700–1200 verts
+      : 44 + Math.floor(Math.random() * 12); // clean dot grid, ~2000 vertices
     const baseR = 1.0 + Math.random() * 0.7;
     const ampHi = baseR * 0.35;
     const coeffs = randomCoeffs(baseR, ampHi);

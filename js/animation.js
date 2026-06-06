@@ -18,6 +18,15 @@ import { updateConstruct }                      from './construct.js';
 
 const clock    = new THREE.Clock();
 const _invQuat = new THREE.Quaternion();
+
+// Reusable scratch objects — avoid allocating per-orb, per-frame (was ~2500
+// THREE.Color + Float64Array allocations/sec → GC pressure → micro-stutter).
+const _mixed      = new Float64Array(12);
+const _baseColor  = new THREE.Color();
+const _hoverColor = new THREE.Color();
+const _labelBase  = new THREE.Color();
+const _labelHover = new THREE.Color();
+const _white      = new THREE.Color(0xffffff);
 let _dofAperture = 0.0; // smoothed aperture value
 let _dofFocus    = 22.0; // smoothed focus distance
 
@@ -64,9 +73,8 @@ function tick() {
       b.coeffsTarget = randomCoeffs(b.baseR, b.ampHi);
     }
     const s = b.lerpT * b.lerpT * (3 - 2 * b.lerpT); // smoothstep
-    const mixed = new Float64Array(12);
-    for (let i = 0; i < 12; i++) mixed[i] = b.coeffs[i] + (b.coeffsTarget[i] - b.coeffs[i]) * s;
-    morphGeo(b.geo, b.unitAngles, mixed, b.baseR);
+    for (let i = 0; i < 12; i++) _mixed[i] = b.coeffs[i] + (b.coeffsTarget[i] - b.coeffs[i]) * s;
+    morphGeo(b.geo, b.unitAngles, _mixed, b.baseR);
 
     // Wave ripple — GPU-driven via shader uniforms
     if (b.hovered && !b.waveActive) {
@@ -146,10 +154,10 @@ function tick() {
 
     // Color lerp — base follows the theme; on the default accent the hover color
     // is the orb's own project color (TNO blue, Taipei red, Siemens petrol).
-    const baseColor  = new THREE.Color(theme.wireHex);
+    const baseColor  = _baseColor.set(theme.wireHex);
     const hoverColor = (accentIsDefault && b.labelColorHex != null)
-      ? new THREE.Color(b.labelColorHex)
-      : new THREE.Color(theme.wireHover);
+      ? _hoverColor.set(b.labelColorHex)
+      : _hoverColor.set(theme.wireHover);
     const targetColor = (b.hovered || isFocused) ? hoverColor : baseColor;
     b.mat.uniforms.uColor.value.lerp(targetColor, (b.hovered || isFocused) ? 0.14 : 0.06);
 
@@ -177,8 +185,8 @@ function tick() {
       // Siemens petrol); brightens slightly on hover/focus.
       let labelBase, labelHover;
       if (accentIsDefault && b.labelColorHex != null) {
-        labelBase  = new THREE.Color(b.labelColorHex);
-        labelHover = new THREE.Color(b.labelColorHex).lerp(new THREE.Color(0xffffff), 0.35);
+        labelBase  = _labelBase.set(b.labelColorHex);
+        labelHover = _labelHover.set(b.labelColorHex).lerp(_white, 0.35);
       } else {
         labelBase  = baseColor;
         labelHover = hoverColor;

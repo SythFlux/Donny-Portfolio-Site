@@ -9,6 +9,8 @@
    • Accent-coloured, adapts to dark/light theme
    ═══════════════════════════════════════════════════════════════════ */
 
+import { pixelRatioCap } from './device.js';
+
 export function initHelix() {
   const contactPage = document.getElementById('page-contact');
   if (!contactPage) return;
@@ -26,7 +28,7 @@ export function initHelix() {
   let mx = -9999, my = -9999;
 
   function resize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, pixelRatioCap);
     w = window.innerWidth;
     h = contactPage.scrollHeight || window.innerHeight;
     canvas.width  = w * dpr;

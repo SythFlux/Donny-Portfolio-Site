@@ -15,7 +15,13 @@ body {
   cursor: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
+  /* Stop pull-to-refresh / rubber-band overscroll from flickering the canvas */
+  overscroll-behavior: none;
 }
+
+/* The 3D canvas should own all touch gestures (orbit/pinch) — keep the browser
+   from hijacking them for scroll/zoom, which causes jank and missed drags. */
+body > canvas { touch-action: none; }
 /* Force custom cursor everywhere — prevent any element from showing the default cursor */
 *, *::before, *::after { cursor: none !important; }
 
@@ -1097,6 +1103,12 @@ html:not([data-theme]) .ct-footer span { color: rgba(0,0,0,0.2); }
 @media (max-width: 768px) {
   /* Allow scrolling on mobile */
   body { overflow-x: hidden; }
+
+  /* Backdrop blur is expensive on mobile GPUs — soften it to cut flicker */
+  #tab-bar {
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
 
   /* Header: compact, single row */
   #header {
