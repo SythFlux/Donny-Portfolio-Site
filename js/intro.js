@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { blobs } from './orbs.js';
 import { renderer, camera, controls } from './scene.js';
+import { isMobile } from './device.js';
 
 let introT = 0;
 let introDone = false;
@@ -45,10 +46,20 @@ export function initIntro() {
   controls.maxDistance = Infinity;
 
   // ── Whole canvas fades up from the background colour ──
+  // NOTE: animating CSS opacity on a WebGL canvas makes iOS Safari composite it
+  // through an intermediate layer with a WHITE backing for the duration of the
+  // transition — a full-screen white flash that grows in as the layer fails to
+  // paint. So on mobile we skip the canvas fade entirely (the staggered orb
+  // fly-out still gives a strong intro) and never attach an opacity transition.
   const canvas = renderer.domElement;
-  canvas.style.opacity = '0';
-  canvas.style.transition = `opacity ${CANVAS_FADE}s ease`;
-  requestAnimationFrame(() => { canvas.style.opacity = '1'; });
+  if (isMobile) {
+    canvas.style.opacity = '1';
+    canvas.style.transition = 'none';
+  } else {
+    canvas.style.opacity = '0';
+    canvas.style.transition = `opacity ${CANVAS_FADE}s ease`;
+    requestAnimationFrame(() => { canvas.style.opacity = '1'; });
+  }
 
   // Start UI fading in alongside the scene
   const fadeIn = (el) => {

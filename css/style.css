@@ -1159,7 +1159,11 @@ html:not([data-theme]) .ct-footer span { color: rgba(0,0,0,0.2); }
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     background: #f4f4f8;
+    /* Guarantee the off-screen panel never paints (iOS can ghost-render a
+       transformed element's box). visibility flips with the .open state. */
+    visibility: hidden;
   }
+  #detail-panel.open { visibility: visible; }
   [data-theme="dark"] #detail-panel { background: #0a0a12; }
   .detail-content { padding: 0 24px 32px; }
   .panel-header { padding: 20px 24px 14px; }
