@@ -22,6 +22,7 @@ let navIdx = 0; // current keyboard-selected orb index
 // Without this, orbiting the camera registers as a tap and opens a panel,
 // which makes the orbs feel impossible to drag/look around on mobile.
 let touchStart = null;       // { x, y, time } of a single-finger touchstart
+let lastTouchEnd = 0;        // timestamp — used to ignore iOS's ghost click
 const TAP_MOVE_PX  = 14;     // movement beyond this = drag, not a tap
 const TAP_TIME_MS  = 500;    // held longer than this = not a tap
 
@@ -39,9 +40,13 @@ export function initInteraction() {
   renderer.domElement.addEventListener('pointermove', onPointerMove);
   renderer.domElement.addEventListener('click', onClick);
 
-  // On touch devices, handle tap directly (no hover state)
+  // On touch devices, handle tap directly (no hover state).
+  // touchend is non-passive so we can preventDefault() and stop iOS from
+  // firing a synthesized "ghost click" ~300ms later — that ghost click was
+  // landing on the canvas and instantly closing the panel a tap had just
+  // opened (worst for left-side orbs the sliding panel hadn't covered yet).
   renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: true });
-  renderer.domElement.addEventListener('touchend', onTouchTap, { passive: true });
+  renderer.domElement.addEventListener('touchend', onTouchTap, { passive: false });
 
   // Resume audio context on first interaction (browser policy)
   const resumeOnce = () => {
@@ -164,6 +169,11 @@ function onPointerMove(e) {
 }
 
 function onClick(e) {
+  // Ignore the synthesized "ghost click" iOS fires right after a touch — the
+  // touchend handler already dealt with the tap. Without this, the ghost click
+  // can close the panel the tap just opened.
+  if (performance.now() - lastTouchEnd < 700) return;
+
   // If panel is open and click is NOT on the panel itself, close it
   if (panelState.panelOpen) {
     const panel = document.getElementById('detail-panel');
@@ -195,6 +205,10 @@ function onTouchStart(e) {
 /** Touch handler for mobile — raycast on tap since there's no hover */
 function onTouchTap(e) {
   if (!e.changedTouches || !e.changedTouches.length) return;
+
+  // Suppress the synthesized ghost click that would otherwise follow.
+  lastTouchEnd = performance.now();
+  if (e.cancelable) e.preventDefault();
 
   // Ignore if other fingers are still down (mid-gesture)
   if (e.touches && e.touches.length > 0) { touchStart = null; return; }
