@@ -119,6 +119,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ── Shared navigation handler ─────────────────────────────
     function navigateTo(toIdx) {
       if (isTransitioning || toIdx === currentStopIdx) return;
+      // They've figured out how to move — retire the mobile swipe coach mark.
+      document.getElementById('tl-swipe')?.classList.add('tl-swipe-done');
       isTransitioning = true;
       viewerBlocked   = true;
       timeline.lock();

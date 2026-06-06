@@ -925,6 +925,56 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
 }
 @keyframes tlHintBob { 0%,100%{transform:translateY(-2px)} 50%{transform:translateY(2px)} }
 
+/* ── Mobile swipe coach mark ──────────────────────────────────── */
+/* A fingertip dot slides between two chevrons to teach the swipe gesture.
+   Hidden on desktop; revealed inside the timeline in the ≤600px block, and
+   faded out by main.js once the user navigates for the first time. */
+.tl-swipe {
+  position: absolute; left: 50%; bottom: 9px; transform: translateX(-50%);
+  z-index: 6; pointer-events: none; white-space: nowrap;
+  display: none;                       /* shown on phones only */
+  align-items: center; gap: 11px;
+  opacity: 1; transition: opacity 500ms ease, transform 500ms ease;
+}
+.tl-swipe.tl-swipe-done { opacity: 0; transform: translateX(-50%) translateY(6px); }
+.tl-swipe-txt {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase; color: rgba(10,10,10,0.55);
+}
+.tl-swipe-ico {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 56px; height: 20px;
+}
+/* Fingertip — a filled dot with a soft pulsing touch-ring, sliding L↔R. */
+.tl-swipe-dot {
+  position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px;
+  border-radius: 50%; background: var(--lc);
+  animation: tlSwipeSlide 1.9s cubic-bezier(0.45,0,0.55,1) infinite;
+}
+.tl-swipe-dot::after {
+  content: ''; position: absolute; inset: -4px; border-radius: 50%;
+  border: 1.5px solid var(--lc); opacity: 0.5;
+  animation: tlSwipeRing 1.9s ease-in-out infinite;
+}
+/* Chevrons either side, pulsing in time with the swipe direction. */
+.tl-swipe-chev {
+  position: absolute; top: 50%; width: 7px; height: 7px; margin-top: -4px;
+  border-right: 2px solid var(--lc); border-bottom: 2px solid var(--lc);
+  opacity: 0.35;
+}
+.tl-swipe-chev-l { left: 2px;  transform: rotate(135deg); animation: tlSwipeChevL 1.9s ease-in-out infinite; }
+.tl-swipe-chev-r { right: 2px; transform: rotate(-45deg); animation: tlSwipeChevR 1.9s ease-in-out infinite; }
+@keyframes tlSwipeSlide {
+  0%, 100% { transform: translateX(-15px); }
+  50%      { transform: translateX(15px); }
+}
+@keyframes tlSwipeRing {
+  0%, 100% { transform: scale(1);   opacity: 0.5; }
+  50%      { transform: scale(1.5); opacity: 0; }
+}
+@keyframes tlSwipeChevL { 0%,45%{opacity:1} 55%,100%{opacity:0.3} }
+@keyframes tlSwipeChevR { 0%,45%{opacity:0.3} 55%,100%{opacity:1} }
+
 #timeline .tl-inner { position:relative; height:100%; display:flex; align-items:center; justify-content:center; }
 #timeline .track { position:relative; width:100%; height:100%; }
 
@@ -1252,7 +1302,9 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   .stop .station-zh { font-size: 14px; }
   .stop .station-en { font-size: 10px; }
   .stop.cap .cap-label { top: 56px; }
-  .tl-hint { font-size: 10px; bottom: 8px; }
+  /* Swap the plain text hint for the animated swipe coach mark on phones */
+  .tl-hint { display: none; }
+  .tl-swipe { display: inline-flex; }
 
   /* Metro map / transition overlays — give the canvas more room */
   .mm-inner, .mt-inner { width: 96vw; }
@@ -1267,7 +1319,8 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
 /* Respect users who ask for less motion — calm the pulsing/blinking decals. */
 @media (prefers-reduced-motion: reduce) {
   .menu-btn-primary, .menu-btn-primary .menu-btn-hint, .menu-btn-primary .menu-btn-arrow,
-  .sp-expand, .map-fab, .rec-dot, .mm-hint-ico, .tl-hint-ico, .exp-here-arrow {
+  .sp-expand, .map-fab, .rec-dot, .mm-hint-ico, .tl-hint-ico, .exp-here-arrow,
+  .tl-swipe-dot, .tl-swipe-dot::after, .tl-swipe-chev-l, .tl-swipe-chev-r {
     animation: none !important;
   }
 }
