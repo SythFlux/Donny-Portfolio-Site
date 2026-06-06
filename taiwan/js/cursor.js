@@ -14,9 +14,9 @@ export function initCursor() {
   let mx = innerWidth / 2, my = innerHeight / 2;   // true pointer
   let rx = mx, ry = my;                            // eased ring position
 
-  // After a few idle seconds (once exploring has begun), the cursor swells into
+  // After a short idle pause (once exploring has begun), the cursor swells into
   // a filled "SCROLL" badge to signal that scrolling navigates the journey.
-  const IDLE_MS = 2200;
+  const IDLE_MS = 1500;
   let idleTimer = null;
   const wake = () => {
     document.body.classList.remove('cursor-idle');

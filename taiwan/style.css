@@ -522,8 +522,17 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   display: flex; align-items: center; justify-content: center;
   min-width: 46px; flex-shrink: 0; transition: min-width 300ms;
 }
-.map-fab-ico svg { width: 21px; height: 21px; display: block; }
+.map-fab-ico svg { width: 23px; height: 23px; display: block; overflow: visible; }
 .map-fab:hover .map-fab-ico { min-width: auto; }
+/* The "signal" node pings outward like a live network — draws the eye/click. */
+.map-fab .mf-ping {
+  transform-box: fill-box; transform-origin: center;
+  animation: mfPing 2s ease-out infinite;
+}
+@keyframes mfPing {
+  0%        { transform: scale(0.5); opacity: 0.9; }
+  70%, 100% { transform: scale(2.4); opacity: 0; }
+}
 .map-fab-txt {
   font-family: var(--mono); font-size: 10px; font-weight: 700;
   letter-spacing: 0.14em; white-space: nowrap;
@@ -1167,24 +1176,10 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   padding: 16px 18px 14px;
 }
 
-.exp-rail {
-  position: absolute;
-  left: 23px;
-  top: 24px;
-  bottom: 22px;
-  width: 4px;
-  border-radius: 2px;
-  /* Twin-rail metro track: two tinted rails with faint sleeper ties between. */
-  background:
-    repeating-linear-gradient(180deg,
-      color-mix(in srgb, var(--lc) 22%, rgba(0,0,0,0.10)) 0 5px,
-      transparent 5px 9px),
-    linear-gradient(90deg,
-      color-mix(in srgb, var(--lc) 42%, rgba(0,0,0,0.18)) 0 1.5px,
-      transparent 1.5px 2.5px,
-      color-mix(in srgb, var(--lc) 42%, rgba(0,0,0,0.18)) 2.5px 4px);
-  z-index: 0;
-}
+/* The rail is drawn PER SEGMENT (see .exp-seg::before) so each leg of the line
+   carries the colour of the station it departs from — purple after V00, blue
+   after 西門, and so on — exactly like a real metro map, instead of one flat
+   theme colour for the whole rail. */
 
 .exp-stop {
   position: relative;
@@ -1197,10 +1192,32 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   border: none;
   cursor: pointer;
   text-align: left;
-  z-index: 1;
+  z-index: 2;                      /* station dots paint OVER the segment rails */
   transition: transform 220ms ease;
 }
 .exp-stop:hover:not(.active) { transform: translateX(2px); }
+/* Rail stub from just under this station's dot down to the row's bottom, in the
+   station's OWN line colour (the colour of the leg leaving it). Combined with
+   each segment reaching down to the next dot, this keeps the rail continuous and
+   correctly coloured even when the active row grows taller (wrapped badge). */
+.exp-stop::before {
+  content: '';
+  position: absolute;
+  left: 4.5px;
+  top: 22px;                       /* tucked under the dot, so the hue change hides there */
+  bottom: 0;
+  width: 4px;
+  border-radius: 2px;
+  background:
+    repeating-linear-gradient(180deg,
+      color-mix(in srgb, var(--sc) 30%, rgba(0,0,0,0.10)) 0 5px,
+      transparent 5px 9px),
+    linear-gradient(90deg,
+      color-mix(in srgb, var(--sc) 55%, rgba(0,0,0,0.18)) 0 1.5px,
+      transparent 1.5px 2.5px,
+      color-mix(in srgb, var(--sc) 55%, rgba(0,0,0,0.18)) 2.5px 4px);
+  z-index: -1;                     /* behind the dot */
+}
 
 /* Connector segment between two major stations, carrying minor stops */
 .exp-seg {
@@ -1211,6 +1228,28 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   gap: 12px;
   padding: 10px 0;
   z-index: 1;
+}
+/* The coloured rail for this leg — runs through the minor stops and reaches
+   DOWN into the next station so it meets that dot (which sits on top). --sc is
+   the upper station's line colour, so the rail changes hue at every station.
+   The bit ABOVE each dot is supplied by .exp-stop::before (see below). */
+.exp-seg::before {
+  content: '';
+  position: absolute;
+  left: 4.5px;
+  top: 0;
+  bottom: -21px;
+  width: 4px;
+  border-radius: 2px;
+  background:
+    repeating-linear-gradient(180deg,
+      color-mix(in srgb, var(--sc) 30%, rgba(0,0,0,0.10)) 0 5px,
+      transparent 5px 9px),
+    linear-gradient(90deg,
+      color-mix(in srgb, var(--sc) 55%, rgba(0,0,0,0.18)) 0 1.5px,
+      transparent 1.5px 2.5px,
+      color-mix(in srgb, var(--sc) 55%, rgba(0,0,0,0.18)) 2.5px 4px);
+  z-index: -1;                     /* behind the minor dots within this segment */
 }
 .exp-minor-stop {
   display: flex;
@@ -1544,7 +1583,7 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
 @media (prefers-reduced-motion: reduce) {
   .menu-btn-primary, .menu-btn-primary .menu-btn-hint, .menu-btn-primary .menu-btn-arrow,
   .sp-expand, .map-fab, .rec-dot, .mm-hint-ico, .tl-hint-ico, .exp-here-arrow,
-  .exp-train, .exp-train-head, .sp-handle-bar, .sp-handle-hint,
+  .exp-train, .exp-train-head, .sp-handle-bar, .sp-handle-hint, .map-fab .mf-ping,
   .tl-swipe-dot, .tl-swipe-dot::after, .tl-swipe-chev-l, .tl-swipe-chev-r {
     animation: none !important;
   }

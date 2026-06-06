@@ -90,7 +90,6 @@ export class Explorer {
         <span class="exp-head-tag">${String(this.items.length).padStart(2, '0')} STOPS</span>
       </div>
       <div class="exp-track">
-        <div class="exp-rail"></div>
         ${rows}
       </div>
       <div class="exp-foot" aria-hidden="true">

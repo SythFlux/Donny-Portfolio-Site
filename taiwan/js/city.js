@@ -37,10 +37,11 @@ export class CityScene {
   setColor(color)        { this.lc = color; }
 
   start() {
-    // The background is subtle, so cap it at ~30fps. This roughly halves its
-    // main-thread cost, leaving more headroom for the WebGL model + a smoother
-    // custom cursor (the source of the "laggy on some browsers" reports).
-    const minDelta = 1000 / 30;
+    // Run smooth (60fps) on desktop so fast particles like rain/leaves don't
+    // stutter; phones keep the cheaper 30fps cap to protect battery + the model.
+    // Per-frame draw cost is kept low by batching particles (one path / one
+    // style change instead of per-particle state churn) — see _weatherFx.
+    const minDelta = 1000 / (this.isMobile ? 30 : 60);
     let last = -Infinity;
     const loop = (ts) => {
       requestAnimationFrame(loop);
@@ -240,10 +241,12 @@ export class CityScene {
   _drawBackdrop(t) {
     const {ctx,W,GY} = this;
 
-    // Grid
+    // Grid — batched into a single path/stroke (was ~75 separate strokes/frame).
     ctx.strokeStyle='rgba(0,0,0,0.04)'; ctx.lineWidth=1;
-    for (let x=0;x<W;x+=40) { ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,GY);ctx.stroke(); }
-    for (let y=0;y<GY;y+=40) { ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke(); }
+    ctx.beginPath();
+    for (let x=0;x<W;x+=40) { ctx.moveTo(x,0); ctx.lineTo(x,GY); }
+    for (let y=0;y<GY;y+=40) { ctx.moveTo(0,y); ctx.lineTo(W,y); }
+    ctx.stroke();
 
     // Static "+" crosshair decals
     for (const p of this._s.pluses??[]) this._plus(ctx, p.x, p.y, 5);
@@ -291,41 +294,90 @@ export class CityScene {
       }
       ctx.restore();
     }
-    // Day / night cycle (red / city)
+    // ── Day / night cycle (city · stop 04) ───────────────────────
+    // A real sky cycle: the sun rises on the left, arcs over, and sets on the
+    // right; as it dips below the horizon the moon rises from the LEFT (the
+    // opposite end) and arcs across the night. The light shifts GRADUALLY
+    // through dawn → noon → dusk → night (continuous functions of the cycle,
+    // no hard switch). The moon is a crescent, not a disc.
     if (this.type === 'city') {
-      const ph  = (t * 0.05) % 1;            // full cycle ≈ 20s
-      const ang = ph * Math.PI;               // sun rises and sets
-      const isDay = ph < 0.5;
+      const cycle = (t * 0.05) % 1;                 // full day+night ≈ 20s
+      const isDay = cycle < 0.5;
+      const p     = isDay ? cycle / 0.5 : (cycle - 0.5) / 0.5;  // 0..1 along this body's arc
+      const elev  = Math.sin(p * Math.PI);          // 0 at horizon → 1 at peak → 0
+      const bx    = W * (0.12 + 0.76 * p);          // rise left, set right
+      const by    = GY * 0.52 - elev * GY * 0.42;   // arc height
+      const fade  = Math.min(1, elev * 2.4);        // fade in/out near the horizon
+
+      // Daylight 0..1 — smooth: 1 at noon (cycle .25), 0 at midnight (cycle .75).
+      const D        = 0.5 + 0.5 * Math.sin(2 * Math.PI * cycle);
+      const night    = 1 - D;                       // darkness
+      const twilight = 1 - Math.abs(D - 0.5) * 2;   // warm glow, peaks at dawn/dusk
+      const noon     = Math.max(0, D - 0.5) * 2;    // mild daytime warmth
+
       ctx.save();
-      ctx.fillStyle = isDay ? `rgba(255,205,110,${(0.12*Math.sin(ang)).toFixed(3)})`
-                            : `rgba(35,45,85,${(0.18*Math.sin(ang)).toFixed(3)})`;
-      ctx.fillRect(0, 0, W, GY);
-      const sx = W*0.12 + W*0.76*ph, sy = GY*0.46 - Math.sin(ang)*GY*0.34;
-      ctx.globalAlpha = 0.7;
-      ctx.fillStyle = isDay ? 'rgba(255,190,70,1)' : 'rgba(225,228,255,1)';
-      ctx.beginPath(); ctx.arc(sx, sy, isDay ? 15 : 11, 0, Math.PI*2); ctx.fill();
-      if (isDay) { ctx.globalAlpha = 0.18; ctx.beginPath(); ctx.arc(sx, sy, 26, 0, Math.PI*2); ctx.fill(); }
+      // Cool night wash (deep blue), warm twilight glow, soft midday warmth —
+      // all eased so the lighting transitions seamlessly.
+      ctx.fillStyle = `rgba(26,36,76,${(0.44 * night).toFixed(3)})`;    ctx.fillRect(0, 0, W, GY);
+      ctx.fillStyle = `rgba(255,150,70,${(0.17 * twilight).toFixed(3)})`; ctx.fillRect(0, 0, W, GY);
+      ctx.fillStyle = `rgba(255,212,130,${(0.06 * noon).toFixed(3)})`;  ctx.fillRect(0, 0, W, GY);
+
+      if (isDay) {
+        // Sun — warm glowing disc.
+        ctx.globalAlpha = 0.22 * fade;
+        ctx.fillStyle = 'rgba(255,180,60,1)';
+        ctx.beginPath(); ctx.arc(bx, by, 30, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = 0.92 * fade;
+        ctx.fillStyle = 'rgba(255,198,80,1)';
+        ctx.beginPath(); ctx.arc(bx, by, 15, 0, Math.PI*2); ctx.fill();
+      } else {
+        // Crescent moon — clip to the disc, then carve the shadow side with an
+        // offset disc so the lit part is a true crescent (never a full circle).
+        const R = 13;
+        ctx.globalAlpha = 0.16 * fade;
+        ctx.fillStyle = 'rgba(210,220,255,1)';
+        ctx.beginPath(); ctx.arc(bx, by, R + 9, 0, Math.PI*2); ctx.fill();   // soft halo
+        ctx.globalAlpha = fade;
+        ctx.fillStyle = 'rgba(236,240,255,1)';
+        ctx.beginPath(); ctx.arc(bx, by, R, 0, Math.PI*2); ctx.fill();       // lit disc
+        ctx.beginPath(); ctx.arc(bx, by, R, 0, Math.PI*2); ctx.clip();       // confine the bite
+        ctx.fillStyle = 'rgba(22,30,64,0.96)';
+        ctx.beginPath(); ctx.arc(bx + R*0.6, by - R*0.16, R, 0, Math.PI*2); ctx.fill();
+      }
       ctx.restore();
     }
   }
 
   // Foreground weather: blue → rain, green → wind-blown leaves.
+  // Both are BATCHED — all raindrops share one path + one stroke, and all
+  // leaves share one fillStyle — so a frame is a couple of GPU calls instead of
+  // hundreds of canvas-state changes. That's what keeps them smooth at 60fps.
   _weatherFx(t) {
     const {ctx,W,GY} = this;
-    for (const d of this._s.rain ?? []) {
-      d.y += d.sp; if (d.y > GY) { d.y = -d.len; d.x = Math.random()*W; }
+
+    const rain = this._s.rain;
+    if (rain && rain.length) {
       ctx.strokeStyle = 'rgba(70,120,175,0.35)'; ctx.lineWidth = 1.2;
-      ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(d.x-2, d.y+d.len); ctx.stroke();
+      ctx.beginPath();
+      for (const d of rain) {
+        d.y += d.sp; if (d.y > GY) { d.y = -d.len; d.x = Math.random()*W; }
+        ctx.moveTo(d.x, d.y); ctx.lineTo(d.x-2, d.y+d.len);
+      }
+      ctx.stroke();                       // one stroke for every drop
     }
-    for (const l of this._s.leaves ?? []) {
-      l.x += l.vx + Math.sin(t*1.2 + l.ph)*0.5;   // wind sway
-      l.y += l.vy; l.rot += l.spin;
-      if (l.y > GY) { l.y = -10; l.x = Math.random()*W; }
-      if (l.x > W+10) l.x = -10;
-      ctx.save(); ctx.translate(l.x, l.y); ctx.rotate(l.rot);
-      ctx.fillStyle = this.lc + 'bb';
-      ctx.beginPath(); ctx.ellipse(0, 0, l.size, l.size*0.5, 0, 0, Math.PI*2); ctx.fill();
-      ctx.restore();
+
+    const leaves = this._s.leaves;
+    if (leaves && leaves.length) {
+      ctx.fillStyle = this.lc + 'bb';     // set once, not per leaf
+      for (const l of leaves) {
+        l.x += l.vx + Math.sin(t*1.2 + l.ph)*0.5;   // wind sway
+        l.y += l.vy; l.rot += l.spin;
+        if (l.y > GY) { l.y = -10; l.x = Math.random()*W; }
+        if (l.x > W+10) l.x = -10;
+        ctx.save(); ctx.translate(l.x, l.y); ctx.rotate(l.rot);
+        ctx.beginPath(); ctx.ellipse(0, 0, l.size, l.size*0.5, 0, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+      }
     }
   }
 
