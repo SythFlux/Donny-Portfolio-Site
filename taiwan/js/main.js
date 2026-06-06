@@ -60,7 +60,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const panel = els.panel;
     const cl = document.body.classList;
     const MIN_H = 92;                                   // peek floor while dragging
-    const fullH = () => Math.round(window.innerHeight - 160);
+    // Ceiling matches the FULL state in CSS (calc(100dvh - 226px)) so releasing
+    // into the full state doesn't jump.
+    const fullH = () => Math.round(window.innerHeight - 226);
     let startY = 0, startH = 0, lastH = 0, dragging = false, moved = false;
 
     handle.addEventListener('touchstart', (e) => {

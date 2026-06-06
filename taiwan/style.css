@@ -49,7 +49,7 @@
 /* ── Reset ──────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #viewer { height: 100%; }
-html, body { overflow: hidden; }
+html, body { overflow: hidden; overscroll-behavior: none; }   /* no browser pull-to-refresh */
 body {
   background: var(--bg);
   color: var(--fg);
@@ -1419,12 +1419,15 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
      (swipe up → near full-screen so you can read everything). The drag follows
      your finger live (main.js sets max-height), then snaps to one of the two. */
   #stop-panel {
-    left: 8px; right: 8px; top: auto; bottom: 146px;   /* timeline (138px) + gap */
-    width: auto; max-height: 40vh; overflow-y: auto;
+    left: 0; right: 0; top: auto; bottom: 138px;   /* full-bleed, above the timeline */
+    width: auto; overflow-y: auto;
+    max-height: 28vh; max-height: 28dvh;           /* dvh tracks the real viewport */
+    overscroll-behavior: contain;                  /* don't chain to the browser */
     -webkit-overflow-scrolling: touch;
     transform: translateY(0);
     padding: 8px 16px 16px;
     border-left: none; border-top: 3px solid var(--lc);
+    border-radius: 18px 18px 0 0;                  /* bottom-sheet rounded top */
     transition: transform 460ms cubic-bezier(0.22,1,0.36,1),
                 max-height 460ms cubic-bezier(0.22,1,0.36,1), opacity 300ms ease;
   }
@@ -1434,9 +1437,12 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   #stop-panel.sp-hidden, #stop-panel.sp-exit {
     transform: translateY(calc(100% + 160px)); opacity: 0;
   }
-  /* FULL — swipe up. Grows up to nearly the whole viewport (the timeline still
-     peeks at the very bottom so you keep your bearings). */
-  body.panel-big #stop-panel { max-height: calc(100vh - 160px); }
+  /* FULL — swipe up. Tall enough to read everything, but its top stops ~88px
+     below the screen edge so the drag handle never sits in the browser's
+     pull-to-refresh zone (that's what hijacked the swipe-down before). */
+  body.panel-big #stop-panel {
+    max-height: calc(100vh - 226px); max-height: calc(100dvh - 226px);
+  }
 
   /* Drag handle — a generous tap target that visibly invites the swipe.
      Sticky to the top of the sheet so it's always reachable, even after you've
