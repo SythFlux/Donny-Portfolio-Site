@@ -4,18 +4,28 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-html { height: 100%; overflow: hidden; }
+html {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  /* Background must match the canvas clear colour so any momentary overscroll
+     reveal at the screen edge isn't a white flash (the iOS Safari flicker). */
+  background: #f0f0f4;
+}
+html[data-theme="dark"] { background: #06060c; }
 
 body {
+  /* Lock the viewport so iOS Safari can't rubber-band the document and slide
+     a white edge into view while you're orbiting the scene. */
+  position: fixed;
+  inset: 0;
   background: #f0f0f4;
   overflow: hidden;
-  height: 100%;
   font-family: 'Inter', sans-serif;
   color: #1a1a1a;
   cursor: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
-  /* Stop pull-to-refresh / rubber-band overscroll from flickering the canvas */
   overscroll-behavior: none;
 }
 
@@ -1167,7 +1177,16 @@ html:not([data-theme]) .ct-footer span { color: rgba(0,0,0,0.2); }
 @media (max-width: 420px) {
   #header { padding: 12px 16px; }
   #header h1 { font-size: 18px; }
-  .color-picker { display: none; }
+  /* Keep the colour palette usable on phones — wrap it and give each swatch a
+     bigger tap target instead of hiding it. */
+  .color-picker {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+  .color-swatch { width: 22px; height: 22px; }
+  .color-swatch span { width: 13px; height: 13px; }
   .detail-content { padding: 0 20px 24px; }
   .panel-header { padding: 16px 20px 12px; }
   .detail-title { font-size: 22px; }
