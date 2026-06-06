@@ -9,10 +9,13 @@ import { isTouch, pixelRatioCap } from './device.js';
 // ── Renderer ─────────────────────────────────────────────────────────
 // antialias is disabled on touch devices — it's a costly full-screen pass and
 // the pixel-ratio clamp already keeps edges acceptable on small screens.
-export const renderer = new THREE.WebGLRenderer({ antialias: !isTouch, alpha: true });
+// alpha:false makes the canvas fully opaque — a transparent WebGL canvas is a
+// notorious source of white-compositing flicker on iOS Safari, and nothing is
+// rendered behind it that needs to show through (it's the background layer).
+export const renderer = new THREE.WebGLRenderer({ antialias: !isTouch, alpha: false });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, pixelRatioCap));
-renderer.setClearColor(0xf0f0f4);
+renderer.setClearColor(0xf0f0f4, 1);
 document.body.appendChild(renderer.domElement);
 
 // Suppress right-click context menu on the canvas so right-drag pans

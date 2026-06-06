@@ -1114,10 +1114,12 @@ html:not([data-theme]) .ct-footer span { color: rgba(0,0,0,0.2); }
   /* Allow scrolling on mobile */
   body { overflow-x: hidden; }
 
-  /* Backdrop blur is expensive on mobile GPUs — soften it to cut flicker */
+  /* backdrop-filter blur repaints the whole layer behind it and is a known
+     flicker source on iOS Safari — drop it on mobile and use a solid bar. */
   #tab-bar {
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(12, 12, 20, 0.92);
   }
 
   /* Header: compact, single row */
@@ -1145,11 +1147,19 @@ html:not([data-theme]) .ct-footer span { color: rgba(0,0,0,0.2); }
   /* Side nav hidden */
   #side-nav { display: none; }
 
-  /* Panel: full screen overlay */
+  /* Panel: full screen overlay.
+     A full-screen backdrop blur(50px) over a translucent near-white bg is
+     extremely heavy on iOS Safari and flashes white while it repaints — since
+     the panel covers the whole screen on mobile anyway, drop the blur and use
+     a solid opaque background. */
   #detail-panel {
     width: 100%;
     padding: 0;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: #f4f4f8;
   }
+  [data-theme="dark"] #detail-panel { background: #0a0a12; }
   .detail-content { padding: 0 24px 32px; }
   .panel-header { padding: 20px 24px 14px; }
   .detail-title { font-size: 26px; }

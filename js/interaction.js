@@ -48,6 +48,21 @@ export function initInteraction() {
   renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: true });
   renderer.domElement.addEventListener('touchend', onTouchTap, { passive: false });
 
+  // Block iOS Safari's edge swipe-back/forward gesture. Dragging to orbit from
+  // near the screen edge otherwise peeks a blank white "previous page" in from
+  // the side (and can slide it across the whole screen) — the white flicker.
+  // Scoped to canvas touches near the edge so UI taps are unaffected.
+  if (isTouch) {
+    const EDGE_PX = 30;
+    renderer.domElement.addEventListener('touchstart', (e) => {
+      const t = e.touches[0];
+      if (!t) return;
+      if ((t.clientX <= EDGE_PX || t.clientX >= window.innerWidth - EDGE_PX) && e.cancelable) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+  }
+
   // Resume audio context on first interaction (browser policy)
   const resumeOnce = () => {
     resumeAudio();
