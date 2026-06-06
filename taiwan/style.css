@@ -119,21 +119,25 @@ body::before {
 }
 #metro-trans.mt-show { opacity: 1; }
 
+/* The canvas is the centred anchor; all text floats ABSOLUTELY around it so it
+   never shifts the map's position. This keeps the map pinned in the exact same
+   spot when handing off from the browse map to the travel transition. */
 .mt-inner {
+  position: relative;
   width: min(960px, 94vw);
   user-select: none;
 }
 
 .mt-eyebrow {
+  position: absolute; left: 0; right: 0; bottom: calc(100% + 50px);
   font-family: var(--mono);
   font-size: 11px; letter-spacing: 0.45em;
-  color: rgba(10,10,10,0.62); text-align: center;
-  margin-bottom: 22px; text-transform: uppercase;
+  color: rgba(10,10,10,0.62); text-align: center; text-transform: uppercase;
 }
 
 .mt-route {
-  display: flex; align-items: center; justify-content: center;
-  gap: 16px; margin-bottom: 44px;
+  position: absolute; left: 0; right: 0; bottom: calc(100% + 12px);
+  display: flex; align-items: center; justify-content: center; gap: 16px;
 }
 .mt-route .mt-zh {
   font-family: 'Noto Sans SC','Microsoft YaHei',sans-serif;
@@ -154,6 +158,7 @@ body::before {
 }
 
 .mt-en-label {
+  position: absolute; left: 0; right: 0; top: calc(100% + 16px);
   font-family: var(--mono);
   font-size: 11px; letter-spacing: 0.26em;
   color: rgba(10,10,10,0.62); text-align: center; text-transform: uppercase;
@@ -538,13 +543,15 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
 }
 #metro-map.mm-show { opacity: 1; pointer-events: auto; }
 
-.mm-inner { width: min(1000px, 96vw); user-select: none; }
+/* Same canvas-anchored layout as the transition overlay (.mt-inner) so the map
+   sits in an identical spot — picking a destination won't make it jump. */
+.mm-inner { position: relative; width: min(960px, 94vw); user-select: none; }
 
 .mm-eyebrow {
+  position: absolute; left: 0; right: 0; bottom: calc(100% + 16px);
   font-family: var(--mono);
   font-size: 11px; letter-spacing: 0.45em;
-  color: rgba(10,10,10,0.62); text-align: center;
-  margin-bottom: 18px; text-transform: uppercase;
+  color: rgba(10,10,10,0.62); text-align: center; text-transform: uppercase;
 }
 
 .mm-canvas {
@@ -553,7 +560,7 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
 }
 
 .mm-hint {
-  margin-top: 14px;
+  position: absolute; left: 0; right: 0; top: calc(100% + 14px);
   font-family: var(--mono);
   font-size: 11px; letter-spacing: 0.2em; font-weight: 500;
   color: rgba(10,10,10,0.55); text-align: center; text-transform: uppercase;

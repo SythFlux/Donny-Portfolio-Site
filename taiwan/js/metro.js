@@ -480,16 +480,16 @@ function drawPin(ctx, c, r, i, item, isDest) {
   }
 
   const top = proj(c, r, PIN_H);
-  groundDot(ctx, base[0], base[1], 8,   'rgba(0,0,0,0.10)');       // ground shadow
-  groundDot(ctx, base[0], base[1], 6.5, BG, item.lineColor, 2.5); // base collar
+  groundDot(ctx, base[0], base[1], 9,   'rgba(0,0,0,0.10)');       // ground shadow
+  groundDot(ctx, base[0], base[1], 7.5, BG, item.lineColor, 2.5); // base collar
 
-  ctx.strokeStyle = item.lineColor; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
+  ctx.strokeStyle = item.lineColor; ctx.lineWidth = 4; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(base[0],base[1]); ctx.lineTo(top[0],top[1]); ctx.stroke();
 
-  ctx.beginPath(); ctx.arc(top[0],top[1],9.5,0,Math.PI*2);
-  ctx.fillStyle = '#fff'; ctx.strokeStyle = item.lineColor; ctx.lineWidth = 3.5; ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(top[0],top[1],13,0,Math.PI*2);
+  ctx.fillStyle = '#fff'; ctx.strokeStyle = item.lineColor; ctx.lineWidth = 4; ctx.fill(); ctx.stroke();
 
-  ctx.font = 'bold 9px "JetBrains Mono", monospace';
+  ctx.font = 'bold 11px "JetBrains Mono", monospace';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = item.lineColor;
   ctx.fillText(item.lineCode, top[0], top[1]);
 
@@ -579,13 +579,23 @@ function drawBrowseFrame(ctx, currentIdx, hoverIdx) {
     .sort((a, b) => (STA_GRID[a][0]+STA_GRID[a][1]) - (STA_GRID[b][0]+STA_GRID[b][1]))
     .forEach((i) => {
       const [c, r] = STA_GRID[i];
-      // Highlight the hovered, pickable station with a pulsing ring at the pin top.
-      if (i === hoverIdx && i !== currentIdx) {
+      // Every pickable (non-current) station wears a tappable ring so it clearly
+      // reads as a button; the hovered one pulses bigger and brighter.
+      if (i !== currentIdx) {
         const [hx, hy] = proj(c, r, PIN_H);
+        const color = config.timelineItems[i].lineColor;
+        const isHover = i === hoverIdx;
         const puls = 0.5 + 0.5 * Math.sin(performance.now() * 0.006);
-        ctx.beginPath(); ctx.arc(hx, hy, 17 + puls * 6, 0, Math.PI * 2);
-        ctx.strokeStyle = config.timelineItems[i].lineColor; ctx.lineWidth = 3;
-        ctx.globalAlpha = 0.45 + 0.35 * puls; ctx.stroke(); ctx.globalAlpha = 1;
+        // Soft filled halo — gives the target visible surface area.
+        ctx.beginPath(); ctx.arc(hx, hy, isHover ? 24 : 19, 0, Math.PI * 2);
+        ctx.fillStyle = color + (isHover ? '2e' : '1c'); ctx.fill();
+        // Dashed "click me" ring.
+        ctx.beginPath(); ctx.arc(hx, hy, isHover ? 22 + puls * 6 : 19, 0, Math.PI * 2);
+        ctx.strokeStyle = color; ctx.lineWidth = isHover ? 3.5 : 2.5;
+        ctx.setLineDash(isHover ? [] : [4, 4]);
+        ctx.globalAlpha = isHover ? (0.55 + 0.35 * puls) : 0.6;
+        ctx.stroke();
+        ctx.setLineDash([]); ctx.globalAlpha = 1;
       }
       drawPin(ctx, c, r, i, config.timelineItems[i], i === currentIdx);
     });
@@ -610,9 +620,12 @@ export function openMetroMap(currentIdx, onSelect) {
   // Client pixel → station index (hit-tests the pin tops). -1 if none.
   const pickStation = (clientX, clientY) => {
     const rect = canvas.getBoundingClientRect();
-    const x = (clientX - rect.left) * (MC_W / rect.width);
+    const scale = MC_W / rect.width;                 // canvas-px per screen-px
+    const x = (clientX - rect.left) * scale;
     const y = (clientY - rect.top)  * (MC_H / rect.height);
-    let best = -1, bestD = 28;                       // px radius in canvas space
+    // Keep the tap target a generous ~38px on screen regardless of how small the
+    // canvas is rendered (so it's big and forgiving on phones too).
+    let best = -1, bestD = 38 * scale;
     config.timelineItems.forEach((_, i) => {
       if (i === currentIdx) return;                  // can't travel to where we are
       const [c, r] = STA_GRID[i];
