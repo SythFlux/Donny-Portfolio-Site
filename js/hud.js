@@ -692,6 +692,12 @@ function tick(now = 0) {
 
 /* ── Init ─────────────────────────────────────────────────────────── */
 export function initHud() {
+  // On mobile the HUD canvas is hidden (CSS) to avoid an iOS GPU layer that
+  // composites as white — so don't waste a per-frame draw loop on it either.
+  if (isMobile) {
+    canvas.style.display = 'none';
+    return;
+  }
   resizeHud();
   canvas.classList.add('active');          // always visible
   rafId = requestAnimationFrame(tick);     // start immediately

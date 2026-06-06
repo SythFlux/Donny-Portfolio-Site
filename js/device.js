@@ -17,9 +17,9 @@ export const isMobile = isTouch || window.innerWidth < 768;
 export const prefersReducedMotion =
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// Cap the render resolution. Mobile GPUs choke on 3× retina fill-rate, so
-// 1.5 keeps things crisp without melting the device (the biggest perf lever).
-export const pixelRatioCap = isMobile ? 1.5 : 2;
+// Cap the render resolution. iPhones choke on 3× retina fill-rate and can drop
+// canvas tiles to white under GPU-memory pressure, so render at 1× on mobile.
+export const pixelRatioCap = isMobile ? 1 : 2;
 
 // The actual device-pixel-ratio we render at, already clamped.
 export const dpr = Math.min(window.devicePixelRatio || 1, pixelRatioCap);

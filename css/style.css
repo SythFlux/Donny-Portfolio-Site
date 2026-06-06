@@ -1148,6 +1148,13 @@ html:not([data-theme]) .ct-footer span { color: rgba(0,0,0,0.2); }
   /* Side nav hidden */
   #side-nav { display: none; }
 
+  /* Kill the full-screen HUD overlay canvas on mobile. A second large canvas
+     layer redrawn every frame exhausts the iPhone GPU's tile memory, and iOS
+     then composites the failed layer as solid WHITE (theme-independent) —
+     showing as a white strip that grows to cover the screen. It's decorative
+     and pointer-events:none, so removing it costs nothing. */
+  #hud-canvas { display: none !important; }
+
   /* Panel: full screen overlay.
      A full-screen backdrop blur(50px) over a translucent near-white bg is
      extremely heavy on iOS Safari and flashes white while it repaints — since
