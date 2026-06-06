@@ -1053,21 +1053,30 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
 #timeline.hidden .stop, #timeline.hidden .items { pointer-events:none !important; }
 #timeline.visible { opacity:1; transform:translateY(0); transition: opacity 700ms ease, transform 700ms ease; }
 
-/* ── Station Explorer ────────────────────────────────────────── */
+/* ── Station Explorer — a "metro line guide" transit card ─────────
+   Anchored in the left band BELOW the back button and ABOVE the timeline,
+   so it never collides with either. Styled like a side-on train carriage:
+   a destination header, the line diagram, and a ticket footer. */
 #explorer-panel {
   position: fixed;
   left: 28px;
-  top: 42%;
-  transform: translateY(-50%) translateX(-44px);
+  top: 116px;                 /* clears the back button (top:58px) */
+  bottom: 206px;              /* clears the bottom timeline (190px) */
+  width: 268px;
   z-index: 115;
   pointer-events: none;
   opacity: 0;
+  transform: translateX(-44px);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  scrollbar-width: none;                        /* hide scrollbar (Firefox) */
   /* Frosted "transit card" matching the boarding-pass panel: line-tinted glass,
      a faint printed dot grid and corner brackets. */
-  padding: 18px 22px 18px 18px;
+  padding: 0;
   background:
     radial-gradient(color-mix(in srgb, var(--lc) 8%, transparent) 1px, transparent 1.4px) 0 0 / 16px 16px,
-    linear-gradient(160deg, color-mix(in srgb, var(--lc) 7%, rgba(245,243,238,0.86)), rgba(245,243,238,0.8));
+    linear-gradient(160deg, color-mix(in srgb, var(--lc) 7%, rgba(245,243,238,0.88)), rgba(245,243,238,0.82));
   backdrop-filter: blur(10px);
   border: 1px solid color-mix(in srgb, var(--lc) 20%, var(--border));
   border-left: 3px solid var(--lc);
@@ -1076,15 +1085,10 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
               transform 500ms cubic-bezier(0.22,1,0.36,1) 300ms,
               border-left-color 400ms ease;
 }
-/* Corner brackets (top-right, bottom-left) */
-#explorer-panel::before, #explorer-panel::after {
-  content: ''; position: absolute; width: 11px; height: 11px; pointer-events: none;
-}
-#explorer-panel::before { top: 6px; right: 6px; border-top: 2px solid var(--lc); border-right: 2px solid var(--lc); }
-#explorer-panel::after  { bottom: 6px; left: 6px; border-bottom: 2px solid var(--lc); border-left: 2px solid var(--lc); }
+#explorer-panel::-webkit-scrollbar { width: 0; height: 0; }   /* hide (WebKit) */
 #explorer-panel.exp-visible {
   opacity: 1;
-  transform: translateY(-50%) translateX(0);
+  transform: translateX(0);
   pointer-events: auto;
 }
 #explorer-panel.exp-hidden {
@@ -1092,30 +1096,86 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   pointer-events: none;
 }
 
-.exp-eyebrow {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.4em;
-  color: rgba(10,10,10,0.62);
-  text-transform: uppercase;
-  margin-bottom: 16px;
-  padding-left: 20px;
-  text-shadow: 0 1px 2px rgba(245,243,238,0.95);
+/* ── Header — a line/destination board ───────────────────────── */
+.exp-head {
+  position: sticky; top: 0; z-index: 3; flex-shrink: 0;
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 16px 12px;
+  background: linear-gradient(180deg, var(--lc), color-mix(in srgb, var(--lc) 86%, #000));
+  color: #fff;
+  box-shadow: 0 6px 14px -10px var(--lc);
+}
+.exp-head-ico {
+  display: inline-flex; flex-shrink: 0;
+}
+.exp-head-ico svg {
+  width: 30px; height: 18px;
+  stroke: rgba(255,255,255,0.92); stroke-width: 1.6; fill: none;
+}
+.exp-head-txt { display: flex; flex-direction: column; gap: 2px; line-height: 1; }
+.exp-head-zh {
+  font-family: 'Noto Sans SC','Microsoft YaHei',sans-serif;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.08em;
+}
+.exp-head-en {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.32em; color: rgba(255,255,255,0.82);
+}
+.exp-head-tag {
+  margin-left: auto; flex-shrink: 0;
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.12em; color: #fff;
+  padding: 3px 7px; border-radius: 3px;
+  border: 1px solid rgba(255,255,255,0.45);
+  background: rgba(255,255,255,0.12);
+}
+
+/* ── Footer — boarding-pass ticket strip ─────────────────────── */
+.exp-foot {
+  display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0;
+  margin-top: auto;                       /* pin to the bottom of the card */
+  padding: 9px 16px 11px;
+  border-top: 1px dashed color-mix(in srgb, var(--lc) 45%, transparent);
+}
+.exp-foot-barcode {
+  flex: 1; height: 18px;
+  background: repeating-linear-gradient(90deg,
+    rgba(10,10,10,0.78) 0 1px, transparent 1px 2px,
+    rgba(10,10,10,0.78) 2px 4px, transparent 4px 5px,
+    rgba(10,10,10,0.78) 5px 6px, transparent 6px 9px);
+  opacity: 0.55;
+}
+.exp-foot-txt {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.14em; color: color-mix(in srgb, var(--lc) 70%, #444);
+  white-space: nowrap;
 }
 
 .exp-track {
   position: relative;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
+  padding: 16px 18px 14px;
 }
 
 .exp-rail {
   position: absolute;
-  left: 6px;
-  top: 14px;
-  bottom: 14px;
-  width: 2px;
-  background: color-mix(in srgb, var(--lc) 30%, rgba(0,0,0,0.14));
+  left: 23px;
+  top: 24px;
+  bottom: 22px;
+  width: 4px;
+  border-radius: 2px;
+  /* Twin-rail metro track: two tinted rails with faint sleeper ties between. */
+  background:
+    repeating-linear-gradient(180deg,
+      color-mix(in srgb, var(--lc) 22%, rgba(0,0,0,0.10)) 0 5px,
+      transparent 5px 9px),
+    linear-gradient(90deg,
+      color-mix(in srgb, var(--lc) 42%, rgba(0,0,0,0.18)) 0 1.5px,
+      transparent 1.5px 2.5px,
+      color-mix(in srgb, var(--lc) 42%, rgba(0,0,0,0.18)) 2.5px 4px);
   z-index: 0;
 }
 
@@ -1123,6 +1183,7 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   position: relative;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;                 /* the "YOU ARE HERE" badge drops to its own line */
   gap: 11px;
   padding: 6px 0;
   background: none;
@@ -1177,17 +1238,42 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
 .exp-here {
   display: none;
   align-items: center;
-  gap: 7px;
-  margin-left: 12px;
-  flex-shrink: 0;
+  gap: 6px;
+  flex-basis: 100%;                /* full row → sits on its own line */
+  margin-left: 24px;               /* indent past the rail/dot */
+  margin-top: 2px;
 }
 .exp-stop.active .exp-here { display: flex; }
 .exp-here-arrow {
-  color: var(--sc);
-  font-size: 18px; font-weight: 700; line-height: 1;
-  animation: hereArrow 1.05s ease-in-out infinite;
-  filter: drop-shadow(0 1px 2px rgba(245,243,238,0.9));
+  color: var(--sc); font-size: 12px; line-height: 1;
+  animation: expHereArrow 1.05s ease-in-out infinite;
 }
+@keyframes expHereArrow {
+  0%, 100% { transform: translateX(0);   opacity: 0.6; }
+  50%      { transform: translateX(3px); opacity: 1; }
+}
+
+/* Little metro train that "arrives" at the active stop, gently bobbing. */
+.exp-train {
+  display: none; flex-shrink: 0;
+  margin-left: auto;               /* push to the right edge of the row */
+  animation: expTrainIn 480ms cubic-bezier(0.22,1,0.36,1) backwards;
+}
+.exp-stop.active .exp-train { display: inline-flex; }
+.exp-train svg { width: 30px; height: 18px; display: block;
+  filter: drop-shadow(0 2px 3px color-mix(in srgb, var(--sc) 50%, transparent)); }
+.exp-train-body { fill: var(--sc); stroke: color-mix(in srgb, var(--sc) 70%, #000); stroke-width: 1; }
+.exp-train-nose { stroke: color-mix(in srgb, var(--sc) 70%, #000); stroke-width: 1.4; fill: none; }
+.exp-train-win  { fill: rgba(245,243,238,0.95); }
+.exp-train-head { stroke: #fff36b; stroke-width: 3; stroke-linecap: round;
+  animation: expHeadlight 1.4s ease-in-out infinite; }
+.exp-train-wheel { fill: color-mix(in srgb, var(--sc) 55%, #111); }
+@keyframes expTrainIn {
+  from { transform: translateX(-12px); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+@keyframes expHeadlight { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+
 .exp-here-txt {
   font-family: var(--mono);
   font-size: 11px; font-weight: 700;
@@ -1199,10 +1285,6 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   border-radius: 3px;
   background: color-mix(in srgb, var(--sc) 12%, var(--bg));
   text-shadow: 0 1px 2px rgba(245,243,238,0.6);
-}
-@keyframes hereArrow {
-  0%, 100% { transform: translateX(0);   opacity: 0.7; }
-  50%      { transform: translateX(-7px); opacity: 1; }
 }
 
 .exp-dot {
@@ -1297,13 +1379,26 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   /* Back buttons — smaller, tucked into the corner */
   #back-portfolio, #back-menu { top: 50px; left: 12px; padding: 8px 12px; font-size: 10px; }
 
-  /* Hero — anchor to the top so it never collides with the bottom dock */
-  #hero-text { align-items: flex-start; padding: 64px 20px 0; }
+  /* Hero — a COMPACT top block so the 3D camera in the centre stays visible.
+     The full desc + data row sprawled down over the model and buried it; on the
+     menu we keep just the line, station and title, with a soft top scrim so the
+     text reads cleanly where it sits over the model. */
+  #hero-text { align-items: flex-start; padding: 56px 20px 0; }
+  #hero-text::before {
+    content: ''; position: absolute; inset: 0 0 auto 0; height: 300px;
+    background: linear-gradient(180deg, rgba(245,243,238,0.92) 0%,
+                rgba(245,243,238,0.55) 46%, transparent 100%);
+    pointer-events: none; z-index: -1;
+  }
   .hero-inner { max-width: none; width: 100%; }
-  .hero-meta-row { margin-bottom: 16px; }
-  .hero-title { font-size: clamp(46px, 16vw, 72px); }
-  .hero-desc { font-size: 12px; line-height: 1.7; margin-bottom: 0; }
-  .hero-data-row { gap: 20px; margin-top: 18px; }
+  .hero-meta-row { margin-bottom: 14px; }
+  .hero-station-row { margin-bottom: 6px; }
+  .hero-title-block { margin-bottom: 0; }
+  .hero-title { font-size: clamp(40px, 13vw, 60px); }
+  /* These pushed down into the model — drop them on the phone menu */
+  .hero-title-en { font-size: 12px; }
+  .hero-desc { display: none; }
+  .hero-data-row { display: none; }
 
   /* Start menu — a bottom dock with full-width buttons */
   #start-menu {
@@ -1321,7 +1416,7 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
 
   /* ── Stop panel → boarding-pass bottom sheet with a drag handle ── */
   #stop-panel {
-    left: 8px; right: 8px; top: auto; bottom: 132px;   /* timeline (124px) + gap */
+    left: 8px; right: 8px; top: auto; bottom: 146px;   /* timeline (138px) + gap */
     width: auto; max-height: 46vh; overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     transform: translateY(0);
@@ -1367,19 +1462,22 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   .map-fab:hover { width: 42px; gap: 0; padding: 0; }              /* no hover-expand on touch */
   .map-fab-txt { display: none; }
 
-  /* Timeline — shorter, with comfortable tap spacing between stops */
-  #timeline { height: 124px; }
-  #timeline .track-line, #timeline .track-marker { top: 40px; }
-  .stop { margin: 0 30px; padding-top: 8px; }
-  .stop .branch { top: 40px; }
+  /* Timeline — taller, with generous tap spacing so labels never collide.
+     Long station names (e.g. "ELEPHANT MOUNTAIN") need real breathing room. */
+  #timeline { height: 138px; }
+  #timeline .track-line, #timeline .track-marker { top: 38px; }
+  .stop { margin: 0 56px; padding-top: 8px; }
+  .stop.cap { margin: 0 34px; }
+  .stop .branch { top: 38px; }
   .stop .stop-code { font-size: 10px; }
-  .stop .station-plate { top: 56px; }
-  .stop .station-zh { font-size: 14px; }
-  .stop .station-en { font-size: 10px; }
-  .stop.cap .cap-label { top: 56px; }
-  /* Swap the plain text hint for the animated swipe coach mark on phones */
+  .stop .station-plate { top: 54px; }
+  .stop .station-zh { font-size: 13px; }
+  .stop .station-en { font-size: 9px; letter-spacing: 0.12em; }
+  .stop.cap .cap-label { top: 54px; }
+  /* Swap the plain text hint for the animated swipe coach mark on phones —
+     this stays visible the whole time on mobile (see main.js). */
   .tl-hint { display: none; }
-  .tl-swipe { display: inline-flex; }
+  .tl-swipe { display: inline-flex; bottom: 11px; }
 
   /* Metro map / transition overlays — give the canvas more room */
   .mm-inner, .mt-inner { width: 96vw; }
@@ -1395,6 +1493,7 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
 @media (prefers-reduced-motion: reduce) {
   .menu-btn-primary, .menu-btn-primary .menu-btn-hint, .menu-btn-primary .menu-btn-arrow,
   .sp-expand, .map-fab, .rec-dot, .mm-hint-ico, .tl-hint-ico, .exp-here-arrow,
+  .exp-train, .exp-train-head,
   .tl-swipe-dot, .tl-swipe-dot::after, .tl-swipe-chev-l, .tl-swipe-chev-r {
     animation: none !important;
   }

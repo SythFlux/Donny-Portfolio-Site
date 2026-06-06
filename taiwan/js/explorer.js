@@ -26,6 +26,21 @@ export class Explorer {
   _render() {
     // Build the line as: major station, then a connector segment carrying the
     // real intermediate stations, then the next major — like a real line.
+    // A little metro train (.exp-train) rides the active stop's "you are here".
+    const TRAIN = `
+      <span class="exp-train" aria-hidden="true">
+        <svg viewBox="0 0 40 24" fill="none">
+          <rect class="exp-train-body" x="1.5" y="2.5" width="37" height="16" rx="5"/>
+          <path class="exp-train-nose" d="M4 18.5 Q1.5 14 1.5 9"/>
+          <rect class="exp-train-win" x="6"  y="6" width="6" height="6" rx="1.5"/>
+          <rect class="exp-train-win" x="15" y="6" width="6" height="6" rx="1.5"/>
+          <rect class="exp-train-win" x="24" y="6" width="6" height="6" rx="1.5"/>
+          <line class="exp-train-head" x1="33" y1="8" x2="36" y2="8"/>
+          <circle class="exp-train-wheel" cx="11" cy="20" r="2.4"/>
+          <circle class="exp-train-wheel" cx="28" cy="20" r="2.4"/>
+        </svg>
+      </span>`;
+
     let rows = '';
     this.items.forEach((item, i) => {
       rows += `
@@ -38,8 +53,9 @@ export class Explorer {
             <span class="exp-name">${item.stationNameEn.toUpperCase()}</span>
             <span class="exp-code">${item.stationCode}</span>
           </div>
+          ${TRAIN}
           <div class="exp-here">
-            <span class="exp-here-arrow">◀</span>
+            <span class="exp-here-arrow">▸</span>
             <span class="exp-here-txt">YOU ARE HERE</span>
           </div>
         </button>`;
@@ -57,10 +73,29 @@ export class Explorer {
     });
 
     this.container.innerHTML = `
-      <div class="exp-eyebrow">EXPLORE · 台北捷運</div>
+      <div class="exp-head">
+        <span class="exp-head-ico" aria-hidden="true">
+          <svg viewBox="0 0 40 24" fill="none">
+            <rect x="1.5" y="2.5" width="37" height="16" rx="5"/>
+            <rect x="6"  y="6" width="6" height="6" rx="1.5"/>
+            <rect x="15" y="6" width="6" height="6" rx="1.5"/>
+            <rect x="24" y="6" width="6" height="6" rx="1.5"/>
+            <circle cx="11" cy="20" r="2.2"/><circle cx="28" cy="20" r="2.2"/>
+          </svg>
+        </span>
+        <div class="exp-head-txt">
+          <span class="exp-head-zh">台北捷運 · MRT</span>
+          <span class="exp-head-en">LINE GUIDE</span>
+        </div>
+        <span class="exp-head-tag">${String(this.items.length).padStart(2, '0')} STOPS</span>
+      </div>
       <div class="exp-track">
         <div class="exp-rail"></div>
         ${rows}
+      </div>
+      <div class="exp-foot" aria-hidden="true">
+        <span class="exp-foot-barcode"></span>
+        <span class="exp-foot-txt">MRT · ADMIT ONE</span>
       </div>
     `;
 

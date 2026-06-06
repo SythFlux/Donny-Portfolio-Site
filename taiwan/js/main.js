@@ -149,8 +149,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ── Shared navigation handler ─────────────────────────────
     function navigateTo(toIdx) {
       if (isTransitioning || toIdx === currentStopIdx) return;
-      // They've figured out how to move — retire the mobile swipe coach mark.
-      document.getElementById('tl-swipe')?.classList.add('tl-swipe-done');
+      // The mobile swipe coach mark stays put as a persistent affordance — it's
+      // the only nav hint on phones, so we no longer retire it after first use.
       // Make sure a peeked sheet pops back up to show the new station's info.
       document.body.classList.remove('sheet-collapsed');
       isTransitioning = true;
