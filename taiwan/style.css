@@ -1441,6 +1441,9 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
      below the screen edge so the drag handle never sits in the browser's
      pull-to-refresh zone (that's what hijacked the swipe-down before). */
   body.panel-big #stop-panel {
+    /* width:auto here is essential — the ≤900px breakpoint pins panel-big to
+       min(440px,92vw), which on a phone leaves a gap down the right side. */
+    width: auto; max-width: none;
     max-height: calc(100vh - 226px); max-height: calc(100dvh - 226px);
   }
 
