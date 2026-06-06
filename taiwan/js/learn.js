@@ -22,7 +22,8 @@ export class Learn {
     this.search  = viewEl.querySelector('#qa-search');
     this.items   = items || [];
     this._built  = false;
-    this._filter = 'all';
+    this._locFilter = 'all';        // Location group (category)
+    this._actFilter = 'all';        // Activity group
     this._q      = '';
     this._cards  = [];
 
@@ -35,48 +36,54 @@ export class Learn {
   _build() {
     if (this._built) return;
 
-    // ── Filter chips, one per unique category ("line"), plus ALL ──
-    const seen = new Set();
-    const cats = [];
-    this.items.forEach((it) => {
-      const c = it.cat || 'Other';
-      if (!seen.has(c)) { seen.add(c); cats.push({ cat: c, line: it.line }); }
-    });
+    // ── Two filter groups, each a row of coloured chips ──
+    //   LOCATION  → the category ("line") of each card
+    //   ACTIVITY  → what you're doing
+    // Picking one chip per group narrows the list (they AND together).
+    const uniq = (key, colorKey) => {
+      const seen = new Set(); const out = [];
+      this.items.forEach((it) => {
+        const v = it[key]; if (!v || seen.has(v)) return;
+        seen.add(v); out.push({ v, color: it[colorKey] });
+      });
+      return out;
+    };
+    const locs = uniq('cat', 'line');
+    const acts = uniq('activity', 'actColor');
+
     if (this.filters) {
-      this.filters.innerHTML =
-        `<button class="qa-chip is-active" type="button" data-cat="all">All</button>` +
-        cats.map((c) =>
-          `<button class="qa-chip" type="button" data-cat="${c.cat}"${c.line ? ` style="--ln:${c.line}"` : ''}>${c.cat}</button>`
-        ).join('');
+      const group = (label, attr, items) =>
+        `<div class="qa-filter-group">
+           <span class="qa-filter-label">${label}</span>
+           <button class="qa-chip is-active" type="button" data-${attr}="all">All</button>` +
+        items.map((c) =>
+          `<button class="qa-chip" type="button" data-${attr}="${c.v}"${c.color ? ` style="--ln:${c.color}"` : ''}>${c.v}</button>`
+        ).join('') + `</div>`;
+
+      this.filters.innerHTML = group('Location', 'cat', locs) + group('Activity', 'act', acts);
+
       this.filters.addEventListener('click', (e) => {
         const chip = e.target.closest('.qa-chip');
         if (!chip) return;
-        this._filter = chip.dataset.cat;
-        this.filters.querySelectorAll('.qa-chip').forEach((c) => c.classList.toggle('is-active', c === chip));
+        const grp = chip.closest('.qa-filter-group');
+        if ('cat' in chip.dataset)      this._locFilter = chip.dataset.cat;
+        else if ('act' in chip.dataset) this._actFilter = chip.dataset.act;
+        // Active state is per-group, so each filter can be set independently.
+        grp.querySelectorAll('.qa-chip').forEach((c) => c.classList.toggle('is-active', c === chip));
         this._applyFilter();
       });
     }
 
-    // Activity / location tags — each with its OWN colour (--mc).
-    const ACT_ICO = `<svg class="qa-meta-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>`;
-    const LOC_ICO = `<svg class="qa-meta-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.6"/></svg>`;
-    const metaItem = (cls, color, ico, label, kind) => label
-      ? `<span class="qa-meta-item ${cls}" style="--mc:${color}">${ico}` +
-        `<span class="qa-meta-k">${kind}</span><span class="qa-meta-v">${label}</span></span>`
-      : '';
-
-    // ── Cards (each is a "station" on the line) ──
+    // ── Cards (each is a "station" on the line). Activity/Location live in the
+    // top filters, not on the card — so the card itself stays clean. ──
     this.list.innerHTML = this.items.map((it, i) => {
       const photos = (it.photos || []).map(photoTile).join('');
       const photoBlock = photos ? `<div class="qa-photos">${photos}</div>` : '';
       const zh  = it.qZh ? `<span class="qa-q-zh">${it.qZh}</span>` : '';
       const tag = it.cat ? `<span class="qa-tag">${it.cat}</span>` : '';
       const ln  = it.line ? ` style="--ln:${it.line}"` : '';
-      const act = metaItem('qa-meta-act', it.actColor || it.line, ACT_ICO, it.activity, 'Activity');
-      const loc = metaItem('qa-meta-loc', it.locColor || it.line, LOC_ICO, it.location, 'Location');
-      const meta = (act || loc) ? `<div class="qa-meta">${act}${loc}</div>` : '';
       return `
-        <article class="qa-card" data-i="${i}" data-cat="${it.cat || 'Other'}"${ln}>
+        <article class="qa-card" data-i="${i}" data-cat="${it.cat || 'Other'}" data-act="${it.activity || ''}"${ln}>
           <span class="qa-stop" aria-hidden="true"></span>
           <button class="qa-q" type="button" aria-expanded="false">
             <span class="qa-q-no">${String(i + 1).padStart(2, '0')}</span>
@@ -85,7 +92,6 @@ export class Learn {
             ${zh}
             <span class="qa-chev" aria-hidden="true">+</span>
           </button>
-          ${meta}
           <div class="qa-a"><div class="qa-a-inner"><div class="qa-a-pad">
             <p class="qa-a-text">${it.a}</p>
             ${photoBlock}
@@ -102,7 +108,9 @@ export class Learn {
     // Searchable text per card (question + category + answer).
     this._cards = this.items.map((it, i) => ({
       el: this.list.querySelector(`.qa-card[data-i="${i}"]`),
-      text: `${it.q} ${it.cat || ''} ${it.activity || ''} ${it.location || ''} ${it.a}`.toLowerCase(),
+      cat: it.cat || 'Other',
+      act: it.activity || '',
+      text: `${it.q} ${it.cat || ''} ${it.activity || ''} ${it.a}`.toLowerCase(),
     }));
 
     // Toggle a card open / closed, or open a photo in the lightbox.
@@ -135,13 +143,14 @@ export class Learn {
     this._built = true;
   }
 
-  // Show only cards that match BOTH the active category and the search text.
+  // Show only cards matching the active Location AND Activity AND search text.
   _applyFilter() {
     let visible = 0;
-    this._cards.forEach(({ el, text }) => {
-      const catOk = this._filter === 'all' || el.dataset.cat === this._filter;
+    this._cards.forEach(({ el, text, cat, act }) => {
+      const locOk = this._locFilter === 'all' || cat === this._locFilter;
+      const actOk = this._actFilter === 'all' || act === this._actFilter;
       const qOk   = !this._q || text.includes(this._q);
-      const show  = catOk && qOk;
+      const show  = locOk && actOk && qOk;
       el.classList.toggle('qa-hide', !show);
       if (!show) {
         el.classList.remove('open');
@@ -183,11 +192,14 @@ export class Learn {
       c.classList.remove('open');
       c.querySelector('.qa-q')?.setAttribute('aria-expanded', 'false');
     });
-    this._filter = 'all';
+    this._locFilter = 'all';
+    this._actFilter = 'all';
     this._q = '';
     if (this.search) this.search.value = '';
     this.list.querySelectorAll('.qa-card.qa-hide').forEach((c) => c.classList.remove('qa-hide'));
     this.empty?.classList.remove('show');
-    this.filters?.querySelectorAll('.qa-chip').forEach((c) => c.classList.toggle('is-active', c.dataset.cat === 'all'));
+    // Re-activate the "All" chip in each group.
+    this.filters?.querySelectorAll('.qa-chip').forEach((c) =>
+      c.classList.toggle('is-active', c.dataset.cat === 'all' || c.dataset.act === 'all'));
   }
 }

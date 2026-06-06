@@ -666,10 +666,19 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   color: var(--muted); text-transform: uppercase; margin: 0;
 }
 
-/* Filter chips — pick a "line" (category) like choosing an MRT route. */
+/* Filter chips — two labelled groups (Location + Activity), each a row of
+   colour-coded chips, like choosing an MRT route by two criteria. */
 .qa-filters {
-  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
-  margin-bottom: 30px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 11px; margin-bottom: 30px;
+}
+.qa-filter-group {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px;
+}
+.qa-filter-label {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.26em; text-transform: uppercase; color: var(--muted);
+  margin-right: 5px; align-self: center;
 }
 .qa-chip {
   font-family: var(--mono); font-size: 11px; font-weight: 700;
@@ -763,35 +772,6 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   transition: transform 300ms cubic-bezier(0.22,1,0.36,1), background 250ms ease, color 250ms ease;
 }
 .qa-card.open .qa-chev { transform: rotate(45deg); background: var(--cl); color: #fff; }
-
-/* Activity / Location meta chips — each carries its OWN colour (--mc), an icon
-   and a small kind label. Always visible so the card reads at a glance. */
-.qa-meta {
-  display: flex; flex-wrap: wrap; gap: 9px;
-  padding: 0 22px 16px 62px; margin-top: -6px;
-}
-.qa-meta-item {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 5px 12px 5px 9px; border-radius: 999px;
-  background: color-mix(in srgb, var(--mc) 12%, rgba(255,255,255,0.55));
-  border: 1px solid color-mix(in srgb, var(--mc) 38%, transparent);
-  transition: background 200ms ease, transform 200ms ease, box-shadow 220ms ease;
-}
-.qa-card:hover .qa-meta-item {
-  background: color-mix(in srgb, var(--mc) 18%, rgba(255,255,255,0.6));
-  box-shadow: 0 6px 16px -12px var(--mc);
-}
-.qa-meta-ico { width: 14px; height: 14px; flex-shrink: 0; display: block; fill: var(--mc); }
-.qa-meta-loc .qa-meta-ico circle { fill: #fff; }     /* pin "hole" */
-.qa-meta-k {
-  font-family: var(--mono); font-size: 8px; font-weight: 700;
-  letter-spacing: 0.2em; text-transform: uppercase;
-  color: color-mix(in srgb, var(--mc) 55%, #888);
-}
-.qa-meta-v {
-  font-family: 'Space Grotesk', sans-serif; font-size: 12.5px; font-weight: 700;
-  letter-spacing: 0.01em; color: color-mix(in srgb, var(--mc) 80%, #1c1c1c);
-}
 
 /* Collapsible answer (0fr → 1fr grid trick handles dynamic / image height) */
 .qa-a {
@@ -1609,8 +1589,7 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   /* Q&A view — tighter top padding so content starts higher */
   .qa-inner { padding: 90px 0 72px; width: 92vw; }
   .qa-q-text { font-size: 16px; }
-  .qa-meta { padding: 0 16px 14px 50px; gap: 7px; }      /* align under the question on phones */
-  .qa-meta-v { font-size: 11.5px; }
+  .qa-filter-label { width: 100%; text-align: center; margin: 0 0 -2px; }
 }
 
 /* Respect users who ask for less motion — calm the pulsing/blinking decals. */
