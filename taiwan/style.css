@@ -261,6 +261,21 @@ body::before {
 }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.15} }
 
+/* Sound on/off toggle — a small speaker in the HUD; gains a slash when muted. */
+.sfx-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; padding: 0;
+  border: none; background: none; cursor: pointer;
+  color: var(--muted);
+  transition: color 200ms ease, transform 160ms ease;
+}
+.sfx-toggle:hover { color: var(--lc); transform: translateY(-1px); }
+.sfx-toggle svg { width: 17px; height: 17px; display: block; }
+.sfx-toggle .sfx-slash { opacity: 0; }                     /* hidden while sound is on */
+.sfx-toggle.sfx-muted { color: var(--muted); }
+.sfx-toggle.sfx-muted .sfx-wave  { opacity: 0; }           /* drop the waves … */
+.sfx-toggle.sfx-muted .sfx-slash { opacity: 1; }           /* … show the slash */
+
 /* ── Line badge ──────────────────────────────────────────────── */
 .line-badge {
   display:inline-flex; align-items:center; justify-content:center;

@@ -7,12 +7,14 @@ import { Learn }               from './learn.js';
 import { showMetroTransition, openMetroMap } from './metro.js';
 import { els, initDOMRefs, updateDOM } from './dom.js';
 import { initCursor }          from './cursor.js';
+import { sfx, initSfx }        from './sfx.js';
 
 let city = null, isTransitioning = false, currentStopIdx = 0;
 
 document.addEventListener('DOMContentLoaded', async () => {
   initDOMRefs();
   initCursor();
+  initSfx();
   updateDOM(0, city);
 
   const cityCanvas = document.getElementById('city-canvas');
@@ -169,6 +171,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (isTransitioning || toIdx === currentStopIdx) return;
       // The mobile swipe coach mark stays put as a persistent affordance — it's
       // the only nav hint on phones, so we no longer retire it after first use.
+      sfx.travel();                       // metro arrival chime on every hop
       isTransitioning = true;
       viewerBlocked   = true;
       timeline.lock();
