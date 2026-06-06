@@ -45,6 +45,15 @@ const VignetteShader = {
 };
 
 export function initPostProcessing() {
+  // On mobile we skip the EffectComposer entirely. The multi-pass pipeline —
+  // and UnrealBloomPass's render-target pyramid in particular — is a notorious
+  // source of full-screen white flicker on iOS Safari, and the extra passes are
+  // a heavy cost on phones. renderComposer() falls back to a direct render.
+  if (isMobile) {
+    composer = null;
+    return null;
+  }
+
   const size = new THREE.Vector2();
   renderer.getSize(size);
 
@@ -54,17 +63,12 @@ export function initPostProcessing() {
   bloomPass = new UnrealBloomPass(size, 0.1, 0.4, 1.4);
   composer.addPass(bloomPass);
 
-  // Depth-of-field (bokeh) is the most expensive pass and a common source of
-  // frame-rate flicker on mobile GPUs — skip it there. setDofFocus() already
-  // no-ops when bokehPass is absent.
-  if (!isMobile) {
-    bokehPass = new BokehPass(scene, camera, {
-      focus:    22.0,
-      aperture: 0.0,
-      maxblur:  0.004,
-    });
-    composer.addPass(bokehPass);
-  }
+  bokehPass = new BokehPass(scene, camera, {
+    focus:    22.0,
+    aperture: 0.0,
+    maxblur:  0.004,
+  });
+  composer.addPass(bokehPass);
 
   const vignette = new ShaderPass(VignetteShader);
   composer.addPass(vignette);
@@ -81,6 +85,7 @@ export function resizePostProcessing() {
 
 export function renderComposer() {
   if (composer) composer.render();
+  else renderer.render(scene, camera);  // mobile: direct render, no post-processing
 }
 
 export function getComposer() {

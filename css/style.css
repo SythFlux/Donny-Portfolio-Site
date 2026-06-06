@@ -15,10 +15,8 @@ html {
 html[data-theme="dark"] { background: #06060c; }
 
 body {
-  /* Lock the viewport so iOS Safari can't rubber-band the document and slide
-     a white edge into view while you're orbiting the scene. */
-  position: fixed;
-  inset: 0;
+  width: 100%;
+  height: 100%;
   background: #f0f0f4;
   overflow: hidden;
   font-family: 'Inter', sans-serif;
