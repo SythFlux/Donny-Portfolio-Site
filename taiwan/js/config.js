@@ -77,6 +77,8 @@ export const config = {
       q: "Do I need a visa to visit Taiwan?",
       qZh: "簽證",
       cat: "Arrival", line: "#7c3aed",
+      activity: "Paperwork",   actColor: "#00a8a8",
+      location: "Taoyuan Airport", locColor: "#7a6ff0",
       a: `It depends on your passport. Many countries — including the US, UK, most of the EU, Australia, Canada and Japan — get visa-exempt entry for up to 90 days. You just need a passport valid for the length of your stay and an onward or return ticket.
 
 If you're coming to study on a scholarship like I was, you usually arrive on a visitor visa and then convert to an ARC (Alien Resident Certificate) once you're here. Always double-check the latest rules on the Bureau of Consular Affairs site before you fly.`,
@@ -86,6 +88,8 @@ If you're coming to study on a scholarship like I was, you usually arrive on a v
       q: "Where do I get the best food?",
       qZh: "美食",
       cat: "Food", line: "#008659",
+      activity: "Eating",      actColor: "#e85d75",
+      location: "Night Markets", locColor: "#f5a623",
       a: `Night markets are the heart of it — Shilin, Raohe and Ningxia are the classics. Go hungry and graze: beef noodle soup, gua bao, oyster omelette, stinky tofu, and bubble tea (which was invented here).
 
 For a cheap, incredible breakfast, find a 豆漿店 (soy-milk shop) and order dan bing with warm soy milk. And don't sleep on the convenience stores — 7-Eleven and FamilyMart tea eggs and hot food are genuinely good.`,
@@ -95,6 +99,8 @@ For a cheap, incredible breakfast, find a 豆漿店 (soy-milk shop) and order da
       q: "How do I get around?",
       qZh: "交通",
       cat: "Transit", line: "#0070c0",
+      activity: "Commuting",   actColor: "#2f80ed",
+      location: "Across Taiwan", locColor: "#18a558",
       a: `Get an EasyCard (悠遊卡) the moment you land — tap it on the MRT, buses, trains, YouBikes, and even to pay at convenience stores. The Taipei MRT is clean, cheap and signed in English; this whole site is themed around it.
 
 For longer trips, the High Speed Rail (HSR) runs down the west coast — Taipei to Kaohsiung in about two hours. Scooters rule the smaller towns, but you'll need the right licence to rent one.`,
@@ -104,6 +110,8 @@ For longer trips, the High Speed Rail (HSR) runs down the west coast — Taipei 
       q: "Money, SIM cards & staying connected?",
       qZh: "錢與網路",
       cat: "Essentials", line: "#f5a623",
+      activity: "Connectivity", actColor: "#f2994a",
+      location: "Convenience Stores", locColor: "#9b51e0",
       a: `Taiwan is still fairly cash-based — carry NT$ for night markets and small shops, though cards and mobile pay work in bigger stores. ATMs at 7-Eleven accept most foreign cards.
 
 Grab a prepaid tourist SIM or eSIM at the airport (Chunghwa Telecom or Taiwan Mobile) for cheap unlimited data. Free public Wi-Fi (iTaiwan) is widely available too.`,
@@ -113,6 +121,8 @@ Grab a prepaid tourist SIM or eSIM at the airport (Chunghwa Telecom or Taiwan Mo
       q: "What's it like studying at Taipei Tech?",
       qZh: "北科大",
       cat: "Taipei Tech", line: "#e3001b",
+      activity: "Studying",    actColor: "#6c5ce7",
+      location: "Taipei Tech", locColor: "#008659",
       a: `I spent the exchange at National Taipei University of Technology (國立臺北科技大學) — "Taipei Tech" / NTUT — on a scholarship. It's a design and engineering school right in the heart of the city, a two-minute walk from MRT Zhongxiao Xinsheng on the Blue and Orange lines.
 
 The campus mixes old red-brick halls with modern studios, and the moment you step out the gate you're in the Guang Hua tech market surrounded by cafés and night food. Classes were hands-on and the maker/design culture is strong — it's where a lot of this project's ideas started.`,

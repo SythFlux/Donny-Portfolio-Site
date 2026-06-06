@@ -57,6 +57,14 @@ export class Learn {
       });
     }
 
+    // Activity / location tags — each with its OWN colour (--mc).
+    const ACT_ICO = `<svg class="qa-meta-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>`;
+    const LOC_ICO = `<svg class="qa-meta-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.6"/></svg>`;
+    const metaItem = (cls, color, ico, label, kind) => label
+      ? `<span class="qa-meta-item ${cls}" style="--mc:${color}">${ico}` +
+        `<span class="qa-meta-k">${kind}</span><span class="qa-meta-v">${label}</span></span>`
+      : '';
+
     // ── Cards (each is a "station" on the line) ──
     this.list.innerHTML = this.items.map((it, i) => {
       const photos = (it.photos || []).map(photoTile).join('');
@@ -64,6 +72,9 @@ export class Learn {
       const zh  = it.qZh ? `<span class="qa-q-zh">${it.qZh}</span>` : '';
       const tag = it.cat ? `<span class="qa-tag">${it.cat}</span>` : '';
       const ln  = it.line ? ` style="--ln:${it.line}"` : '';
+      const act = metaItem('qa-meta-act', it.actColor || it.line, ACT_ICO, it.activity, 'Activity');
+      const loc = metaItem('qa-meta-loc', it.locColor || it.line, LOC_ICO, it.location, 'Location');
+      const meta = (act || loc) ? `<div class="qa-meta">${act}${loc}</div>` : '';
       return `
         <article class="qa-card" data-i="${i}" data-cat="${it.cat || 'Other'}"${ln}>
           <span class="qa-stop" aria-hidden="true"></span>
@@ -74,6 +85,7 @@ export class Learn {
             ${zh}
             <span class="qa-chev" aria-hidden="true">+</span>
           </button>
+          ${meta}
           <div class="qa-a"><div class="qa-a-inner"><div class="qa-a-pad">
             <p class="qa-a-text">${it.a}</p>
             ${photoBlock}
@@ -90,7 +102,7 @@ export class Learn {
     // Searchable text per card (question + category + answer).
     this._cards = this.items.map((it, i) => ({
       el: this.list.querySelector(`.qa-card[data-i="${i}"]`),
-      text: `${it.q} ${it.cat || ''} ${it.a}`.toLowerCase(),
+      text: `${it.q} ${it.cat || ''} ${it.activity || ''} ${it.location || ''} ${it.a}`.toLowerCase(),
     }));
 
     // Toggle a card open / closed, or open a photo in the lightbox.
