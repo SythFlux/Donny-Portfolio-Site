@@ -1296,56 +1296,44 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   line-height: 1;
 }
 
+/* "YOU ARE HERE" — one sleek pill (metro-car glyph + label) on its own line,
+   tinted with the active station's line colour. */
 .exp-here {
   display: none;
   align-items: center;
-  gap: 6px;
-  flex-basis: 100%;                /* full row → sits on its own line */
-  margin-left: 24px;               /* indent past the rail/dot */
-  margin-top: 2px;
+  gap: 7px;
+  width: fit-content;
+  flex-basis: 100%;                /* drops onto its own line under the name */
+  margin: 4px 0 0 24px;            /* indent past the rail/dot */
+  padding: 4px 11px 4px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sc) 15%, var(--bg));
+  border: 1px solid color-mix(in srgb, var(--sc) 32%, transparent);
+  box-shadow: 0 4px 12px -7px color-mix(in srgb, var(--sc) 70%, transparent);
 }
-.exp-stop.active .exp-here { display: flex; }
-.exp-here-arrow {
-  color: var(--sc); font-size: 12px; line-height: 1;
-  animation: expHereArrow 1.05s ease-in-out infinite;
+.exp-stop.active .exp-here {
+  display: inline-flex;
+  animation: expHereIn 360ms cubic-bezier(0.22,1,0.36,1);
 }
-@keyframes expHereArrow {
-  0%, 100% { transform: translateX(0);   opacity: 0.6; }
-  50%      { transform: translateX(3px); opacity: 1; }
+@keyframes expHereIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: none; }
 }
 
-/* Little metro train that "arrives" at the active stop, gently bobbing. */
-.exp-train {
-  display: none; flex-shrink: 0;
-  margin-left: auto;               /* push to the right edge of the row */
-  animation: expTrainIn 480ms cubic-bezier(0.22,1,0.36,1) backwards;
-}
-.exp-stop.active .exp-train { display: inline-flex; }
-.exp-train svg { width: 30px; height: 18px; display: block;
-  filter: drop-shadow(0 2px 3px color-mix(in srgb, var(--sc) 50%, transparent)); }
-.exp-train-body { fill: var(--sc); stroke: color-mix(in srgb, var(--sc) 70%, #000); stroke-width: 1; }
-.exp-train-nose { stroke: color-mix(in srgb, var(--sc) 70%, #000); stroke-width: 1.4; fill: none; }
-.exp-train-win  { fill: rgba(245,243,238,0.95); }
-.exp-train-head { stroke: #fff36b; stroke-width: 3; stroke-linecap: round;
-  animation: expHeadlight 1.4s ease-in-out infinite; }
-.exp-train-wheel { fill: color-mix(in srgb, var(--sc) 55%, #111); }
-@keyframes expTrainIn {
-  from { transform: translateX(-12px); opacity: 0; }
-  to   { transform: translateX(0);     opacity: 1; }
-}
-@keyframes expHeadlight { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+/* Minimal metro car — rounded body, window strip, blinking headlight. */
+.exp-here-train { width: 25px; height: 12px; display: block; flex-shrink: 0; }
+.eht-body  { fill: var(--sc); }
+.eht-win   { fill: color-mix(in srgb, #fff 80%, var(--sc)); opacity: 0.92; }
+.eht-light { fill: #fff3b0; animation: ehtLight 1.4s ease-in-out infinite; }
+@keyframes ehtLight { 0%,100% { opacity: 0.45; } 50% { opacity: 1; } }
 
 .exp-here-txt {
   font-family: var(--mono);
-  font-size: 11px; font-weight: 700;
-  letter-spacing: 0.14em;
-  color: var(--sc);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.16em;
+  color: color-mix(in srgb, var(--sc) 78%, #333);
   white-space: nowrap;
-  padding: 3px 8px;
-  border: 1px solid color-mix(in srgb, var(--sc) 45%, transparent);
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--sc) 12%, var(--bg));
-  text-shadow: 0 1px 2px rgba(245,243,238,0.6);
+  line-height: 1;
 }
 
 .exp-dot {
@@ -1597,8 +1585,8 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
 /* Respect users who ask for less motion — calm the pulsing/blinking decals. */
 @media (prefers-reduced-motion: reduce) {
   .menu-btn-primary, .menu-btn-primary .menu-btn-hint, .menu-btn-primary .menu-btn-arrow,
-  .sp-expand, .map-fab, .rec-dot, .mm-hint-ico, .tl-hint-ico, .exp-here-arrow,
-  .exp-train, .exp-train-head, .sp-handle-bar, .sp-handle-hint, .map-fab .mf-ping,
+  .sp-expand, .map-fab, .rec-dot, .mm-hint-ico, .tl-hint-ico, .eht-light,
+  .sp-handle-bar, .sp-handle-hint, .map-fab .mf-ping,
   .tl-swipe-dot, .tl-swipe-dot::after, .tl-swipe-chev-l, .tl-swipe-chev-r {
     animation: none !important;
   }

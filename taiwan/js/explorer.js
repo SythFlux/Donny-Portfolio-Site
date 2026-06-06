@@ -26,20 +26,17 @@ export class Explorer {
   _render() {
     // Build the line as: major station, then a connector segment carrying the
     // real intermediate stations, then the next major — like a real line.
-    // A little metro train (.exp-train) rides the active stop's "you are here".
-    const TRAIN = `
-      <span class="exp-train" aria-hidden="true">
-        <svg viewBox="0 0 40 24" fill="none">
-          <rect class="exp-train-body" x="1.5" y="2.5" width="37" height="16" rx="5"/>
-          <path class="exp-train-nose" d="M4 18.5 Q1.5 14 1.5 9"/>
-          <rect class="exp-train-win" x="6"  y="6" width="6" height="6" rx="1.5"/>
-          <rect class="exp-train-win" x="15" y="6" width="6" height="6" rx="1.5"/>
-          <rect class="exp-train-win" x="24" y="6" width="6" height="6" rx="1.5"/>
-          <line class="exp-train-head" x1="33" y1="8" x2="36" y2="8"/>
-          <circle class="exp-train-wheel" cx="11" cy="20" r="2.4"/>
-          <circle class="exp-train-wheel" cx="28" cy="20" r="2.4"/>
+    // The active stop shows a sleek "YOU ARE HERE" pill with a minimal metro-car
+    // glyph (rounded body, window strip, blinking headlight — no clunky wheels).
+    const HERE = `
+      <div class="exp-here">
+        <svg class="exp-here-train" viewBox="0 0 34 16" fill="none" aria-hidden="true">
+          <rect class="eht-body"  x="1" y="1.5" width="32" height="13" rx="6"/>
+          <rect class="eht-win"   x="5" y="5" width="20" height="4.6" rx="2.3"/>
+          <circle class="eht-light" cx="30" cy="8" r="1.1"/>
         </svg>
-      </span>`;
+        <span class="exp-here-txt">YOU ARE HERE</span>
+      </div>`;
 
     let rows = '';
     this.items.forEach((item, i) => {
@@ -53,11 +50,7 @@ export class Explorer {
             <span class="exp-name">${item.stationNameEn.toUpperCase()}</span>
             <span class="exp-code">${item.stationCode}</span>
           </div>
-          ${TRAIN}
-          <div class="exp-here">
-            <span class="exp-here-arrow">▸</span>
-            <span class="exp-here-txt">YOU ARE HERE</span>
-          </div>
+          ${HERE}
         </button>`;
       if (i < this.items.length - 1) {
         const minors = (MINOR_STATIONS[i] || []).map(m => `
