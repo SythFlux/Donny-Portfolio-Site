@@ -50,34 +50,50 @@ document.addEventListener('DOMContentLoaded', async () => {
     expandBtn.querySelector('.sp-expand-txt').textContent = big ? 'SHRINK' : 'ENLARGE';
   });
 
-  // ── Mobile bottom-sheet: drag the handle to step collapsed ⇄ normal ⇄ big ──
-  // Bound to the handle only, so dragging never fights scrolling the sheet body.
-  // Swipe up grows it (peek → normal → enlarged); swipe down shrinks it; a tap
-  // toggles the peek state.
+  // ── Mobile bottom-sheet: drag the handle to resize between two states ──────
+  // SMALL (default peek) ⇄ FULL (near full-screen). The sheet follows the finger
+  // 1:1 by driving max-height live, then snaps to the nearer state on release —
+  // so it feels fluent and consistent. A tap on the handle toggles the state.
+  // Bound to the handle only, so it never fights scrolling the sheet body.
   const handle = els.panel?.querySelector('.sp-handle');
   if (handle) {
+    const panel = els.panel;
     const cl = document.body.classList;
-    let hsy = 0, hActive = false;
+    const MIN_H = 92;                                   // peek floor while dragging
+    const fullH = () => Math.round(window.innerHeight - 160);
+    let startY = 0, startH = 0, lastH = 0, dragging = false, moved = false;
+
     handle.addEventListener('touchstart', (e) => {
-      if (e.touches.length !== 1) { hActive = false; return; }
-      hActive = true; hsy = e.touches[0].clientY;
+      if (e.touches.length !== 1) { dragging = false; return; }
+      dragging = true; moved = false;
+      startY = e.touches[0].clientY;
+      startH = panel.getBoundingClientRect().height;
+      lastH  = startH;
+      panel.classList.add('sp-dragging');               // kill transition → track finger
     }, { passive: true });
-    handle.addEventListener('touchend', (e) => {
-      if (!hActive) return;
-      hActive = false;
-      const dy = e.changedTouches[0].clientY - hsy;
-      if (Math.abs(dy) < 30) {                        // a tap → peek / restore
-        cl.remove('panel-big'); cl.toggle('sheet-collapsed');
-        return;
-      }
-      if (dy < 0) {                                   // swipe up → grow
-        if (cl.contains('sheet-collapsed')) cl.remove('sheet-collapsed');
-        else cl.add('panel-big');
-      } else {                                        // swipe down → shrink
-        if (cl.contains('panel-big')) cl.remove('panel-big');
-        else cl.add('sheet-collapsed');
-      }
+
+    handle.addEventListener('touchmove', (e) => {
+      if (!dragging) return;
+      const dy = startY - e.touches[0].clientY;          // up = positive
+      if (Math.abs(dy) > 4) moved = true;
+      lastH = Math.max(MIN_H, Math.min(fullH(), startH + dy));
+      panel.style.maxHeight = lastH + 'px';
     }, { passive: true });
+
+    const endDrag = () => {
+      if (!dragging) return;
+      dragging = false;
+      panel.classList.remove('sp-dragging');
+      panel.style.maxHeight = '';                        // hand sizing back to the CSS state
+      if (!moved) { cl.toggle('panel-big'); return; }    // tap → toggle
+      // Direction-based snap: a deliberate drag up expands, down collapses; a
+      // small nudge just settles back to whatever state you were in.
+      const delta = lastH - startH;
+      if (delta > 60)       cl.add('panel-big');         // dragged up → FULL
+      else if (delta < -60) cl.remove('panel-big');      // dragged down → SMALL
+    };
+    handle.addEventListener('touchend', endDrag, { passive: true });
+    handle.addEventListener('touchcancel', endDrag, { passive: true });
   }
 
   // ── Top-left nav: PORTFOLIO on the menu, BACK TO MENU inside a view ──
@@ -151,8 +167,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (isTransitioning || toIdx === currentStopIdx) return;
       // The mobile swipe coach mark stays put as a persistent affordance — it's
       // the only nav hint on phones, so we no longer retire it after first use.
-      // Make sure a peeked sheet pops back up to show the new station's info.
-      document.body.classList.remove('sheet-collapsed');
       isTransitioning = true;
       viewerBlocked   = true;
       timeline.lock();

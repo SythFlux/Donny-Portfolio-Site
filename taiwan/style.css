@@ -1414,31 +1414,66 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   /* Model station name — smaller, clear of the HUD */
   .model-station-name { top: 9vh; }
 
-  /* ── Stop panel → boarding-pass bottom sheet with a drag handle ── */
+  /* ── Stop panel → boarding-pass bottom sheet with a drag handle ──
+     Two clean states: SMALL (default peek, sits above the timeline) and FULL
+     (swipe up → near full-screen so you can read everything). The drag follows
+     your finger live (main.js sets max-height), then snaps to one of the two. */
   #stop-panel {
     left: 8px; right: 8px; top: auto; bottom: 146px;   /* timeline (138px) + gap */
-    width: auto; max-height: 46vh; overflow-y: auto;
+    width: auto; max-height: 40vh; overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     transform: translateY(0);
-    padding: 14px 16px 16px;
+    padding: 8px 16px 16px;
     border-left: none; border-top: 3px solid var(--lc);
-    transition: transform 420ms cubic-bezier(0.22,1,0.36,1),
-                max-height 380ms cubic-bezier(0.22,1,0.36,1), opacity 300ms ease;
+    transition: transform 460ms cubic-bezier(0.22,1,0.36,1),
+                max-height 460ms cubic-bezier(0.22,1,0.36,1), opacity 300ms ease;
   }
+  /* While the finger is down we drive max-height directly — no transition, so
+     the sheet tracks the drag 1:1 and feels fluent. */
+  #stop-panel.sp-dragging { transition: none; }
   #stop-panel.sp-hidden, #stop-panel.sp-exit {
-    transform: translateY(calc(100% + 140px)); opacity: 0;
+    transform: translateY(calc(100% + 160px)); opacity: 0;
   }
-  body.panel-big     #stop-panel { width: auto; max-height: 66vh; }  /* swipe up = taller */
-  body.sheet-collapsed #stop-panel { max-height: 66px; overflow: hidden; }  /* swipe down = peek */
+  /* FULL — swipe up. Grows up to nearly the whole viewport (the timeline still
+     peeks at the very bottom so you keep your bearings). */
+  body.panel-big #stop-panel { max-height: calc(100vh - 160px); }
 
-  /* Drag handle — the grabber that sells the sheet as draggable */
+  /* Drag handle — a generous tap target that visibly invites the swipe.
+     Sticky to the top of the sheet so it's always reachable, even after you've
+     scrolled a full sheet's content — swipe down on it to shrink again. */
   .sp-handle {
-    display: flex; justify-content: center; align-items: center;
-    height: 16px; margin: -6px 0 8px; cursor: grab;
+    position: sticky; top: 0; z-index: 5;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    gap: 5px; height: auto; padding: 10px 0 8px; margin: -8px -16px 6px;
+    background: linear-gradient(180deg, #fffdf8 62%, rgba(255,253,248,0));
+    cursor: grab; touch-action: none;          /* we own the vertical gesture */
   }
+  .sp-handle:active { cursor: grabbing; }
   .sp-handle-bar {
-    width: 44px; height: 4px; border-radius: 2px;
-    background: color-mix(in srgb, var(--lc) 45%, rgba(0,0,0,0.22));
+    width: 46px; height: 5px; border-radius: 3px;
+    background: color-mix(in srgb, var(--lc) 55%, rgba(0,0,0,0.22));
+    animation: spHandlePulse 2s ease-in-out infinite;   /* "grab me" cue */
+  }
+  #stop-panel.sp-dragging .sp-handle-bar { animation: none; }
+  /* Contextual hint — flips text depending on the current state. */
+  .sp-handle-hint {
+    font-family: var(--mono); font-size: 9px; font-weight: 700;
+    letter-spacing: 0.14em; line-height: 1;
+    color: color-mix(in srgb, var(--lc) 72%, #555);
+  }
+  .sp-handle-hint .sp-hint-down { display: none; }
+  body.panel-big .sp-handle-hint .sp-hint-up { display: none; }
+  body.panel-big .sp-handle-hint .sp-hint-down { display: inline; }
+  /* The hint + bar gently bob upward to telegraph "swipe up". */
+  body:not(.panel-big) .sp-handle-hint { animation: spHintBob 2s ease-in-out infinite; }
+  #stop-panel.sp-dragging .sp-handle-hint { animation: none; }
+  @keyframes spHandlePulse {
+    0%, 100% { width: 46px; opacity: 0.7; }
+    50%      { width: 60px; opacity: 1; }
+  }
+  @keyframes spHintBob {
+    0%, 100% { transform: translateY(0);    opacity: 0.7; }
+    50%      { transform: translateY(-2px); opacity: 1; }
   }
 
   .sp-expand { display: none; }                                    /* no side pill in sheet mode */
@@ -1493,7 +1528,7 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
 @media (prefers-reduced-motion: reduce) {
   .menu-btn-primary, .menu-btn-primary .menu-btn-hint, .menu-btn-primary .menu-btn-arrow,
   .sp-expand, .map-fab, .rec-dot, .mm-hint-ico, .tl-hint-ico, .exp-here-arrow,
-  .exp-train, .exp-train-head,
+  .exp-train, .exp-train-head, .sp-handle-bar, .sp-handle-hint,
   .tl-swipe-dot, .tl-swipe-dot::after, .tl-swipe-chev-l, .tl-swipe-chev-r {
     animation: none !important;
   }

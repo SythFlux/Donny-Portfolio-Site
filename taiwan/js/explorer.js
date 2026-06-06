@@ -112,6 +112,22 @@ export class Explorer {
 
   setActive(idx) {
     this._stops.forEach((s, i) => s.classList.toggle('active', i === idx));
+    this._scrollToActive(idx);
+  }
+
+  // Keep the active stop centred in the (scrollable) card, so you can always
+  // see where you are on the line — even at the far end (e.g. SIEMENS). Scrolls
+  // only the panel itself, never the page.
+  _scrollToActive(idx) {
+    const el = this._stops[idx];
+    if (!el) return;
+    const c = this.container;
+    requestAnimationFrame(() => {
+      const cRect = c.getBoundingClientRect();
+      const eRect = el.getBoundingClientRect();
+      const delta = (eRect.top - cRect.top) - (c.clientHeight / 2) + (eRect.height / 2);
+      c.scrollTo({ top: Math.max(0, c.scrollTop + delta), behavior: 'smooth' });
+    });
   }
 
   lock()   { this._locked = true; }
