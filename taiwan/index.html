@@ -214,6 +214,11 @@
   </button>
 
   <aside id="stop-panel" class="sp-hidden">
+    <!-- Mobile bottom-sheet drag handle (hidden on desktop) -->
+    <div class="sp-handle" aria-hidden="true"><span class="sp-handle-bar"></span></div>
+    <!-- Boarding-pass corner brackets -->
+    <span class="sp-corner sp-corner-tr" aria-hidden="true"></span>
+    <span class="sp-corner sp-corner-bl" aria-hidden="true"></span>
     <div id="sp-decal" class="sp-decal" aria-hidden="true"></div>
     <div class="sp-header-row">
       <span id="sp-badge" class="line-badge lg">R</span>
@@ -247,6 +252,14 @@
       <span class="sp-tag">台灣 TAIWAN</span>
       <span class="sp-tag">2025</span>
       <span class="sp-tag">SCHOLARSHIP</span>
+    </div>
+    <!-- Boarding-pass footer: faux barcode + ticket meta -->
+    <div class="sp-ticket-foot" aria-hidden="true">
+      <div class="sp-barcode"></div>
+      <div class="sp-ticket-meta">
+        <span class="sp-ticket-admit">MRT · ADMIT ONE</span>
+        <span id="sp-ticket-no" class="sp-ticket-no">R10</span>
+      </div>
     </div>
   </aside>
 

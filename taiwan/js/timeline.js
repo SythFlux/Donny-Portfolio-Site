@@ -158,8 +158,9 @@ export class Timeline {
     let sx = 0, sy = 0, st = 0, swiping = false;
     window.addEventListener('touchstart', (e) => {
       if (!this.enabled || e.touches.length !== 1) { swiping = false; return; }
-      // Don't hijack swipes that start on a scrollable overlay (Q&A etc.).
-      if (e.target.closest('#qa-view, #metro-map')) { swiping = false; return; }
+      // Don't hijack swipes that start on a scrollable overlay or the stop
+      // panel (the bottom sheet has its own drag-to-expand/collapse gesture).
+      if (e.target.closest('#qa-view, #metro-map, #stop-panel')) { swiping = false; return; }
       swiping = true;
       sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now();
     }, { passive: true });

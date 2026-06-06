@@ -50,6 +50,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     expandBtn.querySelector('.sp-expand-txt').textContent = big ? 'SHRINK' : 'ENLARGE';
   });
 
+  // ── Mobile bottom-sheet: drag the handle to step collapsed ⇄ normal ⇄ big ──
+  // Bound to the handle only, so dragging never fights scrolling the sheet body.
+  // Swipe up grows it (peek → normal → enlarged); swipe down shrinks it; a tap
+  // toggles the peek state.
+  const handle = els.panel?.querySelector('.sp-handle');
+  if (handle) {
+    const cl = document.body.classList;
+    let hsy = 0, hActive = false;
+    handle.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) { hActive = false; return; }
+      hActive = true; hsy = e.touches[0].clientY;
+    }, { passive: true });
+    handle.addEventListener('touchend', (e) => {
+      if (!hActive) return;
+      hActive = false;
+      const dy = e.changedTouches[0].clientY - hsy;
+      if (Math.abs(dy) < 30) {                        // a tap → peek / restore
+        cl.remove('panel-big'); cl.toggle('sheet-collapsed');
+        return;
+      }
+      if (dy < 0) {                                   // swipe up → grow
+        if (cl.contains('sheet-collapsed')) cl.remove('sheet-collapsed');
+        else cl.add('panel-big');
+      } else {                                        // swipe down → shrink
+        if (cl.contains('panel-big')) cl.remove('panel-big');
+        else cl.add('sheet-collapsed');
+      }
+    }, { passive: true });
+  }
+
   // ── Top-left nav: PORTFOLIO on the menu, BACK TO MENU inside a view ──
   const setInExperience = (on) => {
     backMenu.hidden = !on;
@@ -121,6 +151,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (isTransitioning || toIdx === currentStopIdx) return;
       // They've figured out how to move — retire the mobile swipe coach mark.
       document.getElementById('tl-swipe')?.classList.add('tl-swipe-done');
+      // Make sure a peeked sheet pops back up to show the new station's info.
+      document.body.classList.remove('sheet-collapsed');
       isTransitioning = true;
       viewerBlocked   = true;
       timeline.lock();

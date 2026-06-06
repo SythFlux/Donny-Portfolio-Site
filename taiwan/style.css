@@ -381,39 +381,93 @@ body::before {
 @keyframes arrowBounce  { 0%,100%{transform:translateY(0)} 50%{transform:translateY(5px)} }
 @keyframes hintBlink    { 0%,100%{opacity:1} 50%{opacity:0.35} }
 
-/* ── Stop info panel ─────────────────────────────────────────── */
+/* ── Stop info panel — "boarding pass" ───────────────────────────
+   A transit-ticket card: a colour stub header, a dashed perforation, corner
+   brackets, a giant faint station-code watermark and a faux barcode footer. */
 #stop-panel {
   position: fixed; right: 24px; top: 50%;
   transform: translateY(-50%) translateX(0);
-  width: 330px;
+  width: 336px;
   overflow: visible;        /* no scrollbar — panel sizes to its content */
   z-index: 115;
-  background: rgba(255,255,255,0.94);
+  /* Warm "paper" with a faint wash of the line colour + a printed dot grid */
+  background:
+    radial-gradient(color-mix(in srgb, var(--lc) 9%, transparent) 1px, transparent 1.4px) 0 0 / 16px 16px,
+    linear-gradient(165deg, color-mix(in srgb, var(--lc) 7%, #fffdf8), rgba(255,255,255,0.95));
   backdrop-filter: blur(14px);
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--lc) 22%, var(--border));
   border-left: 3px solid var(--lc);
-  padding: 22px;
+  padding: 18px;
   opacity: 1;
+  box-shadow:
+    0 24px 60px -26px rgba(0,0,0,0.55),
+    0 2px 0 0 color-mix(in srgb, var(--lc) 30%, transparent) inset;
   transition:
     transform 520ms cubic-bezier(0.22,1,0.36,1),
     opacity 380ms ease,
     width 480ms cubic-bezier(0.16,1,0.3,1),
+    max-height 380ms cubic-bezier(0.22,1,0.36,1),
     border-left-color 400ms ease;
 }
-/* Enlarged panel — wider, nudged up, capped clear of the bottom timeline.
-   Centred at 42% with a cap that keeps both edges clear (HUD top, timeline bottom). */
-body.panel-big #stop-panel { width: 470px; }
+body.panel-big #stop-panel { width: 472px; }
 
-/* Big faint station-code decal, revealed when the panel is enlarged */
-.sp-decal {
-  position: absolute; right: 16px; bottom: 12px; z-index: 0;
-  font-family: 'Space Grotesk', sans-serif; font-weight: 800;
-  font-size: 116px; line-height: 0.8; letter-spacing: -0.04em;
-  color: var(--lc); opacity: 0;
-  pointer-events: none; user-select: none; white-space: nowrap;
-  transition: opacity 320ms ease;
+/* Colour "stub" header band — full-bleed, white text, dashed perforation edge. */
+.sp-header-row {
+  display: flex; align-items: center; gap: 11px;
+  margin: -18px -18px 16px;
+  padding: 14px 16px;
+  background: linear-gradient(115deg, var(--lc), color-mix(in srgb, var(--lc) 72%, #000));
+  border-bottom: 2px dashed rgba(255,255,255,0.55);
+  position: relative; z-index: 2;
 }
-body.panel-big .sp-decal { opacity: 0.08; }
+#stop-panel .sp-header-row .line-badge { background: #fff; color: var(--lc); box-shadow: 0 2px 8px -2px rgba(0,0,0,0.4); }
+#stop-panel .sp-line-info span:first-child { color: #fff; }
+#stop-panel .sp-line-info span:last-child  { color: rgba(255,255,255,0.78); }
+#stop-panel .sp-station-code { color: #fff; }
+
+/* Corner brackets (top-right, bottom-left) — same motif as the menu buttons. */
+.sp-corner {
+  position: absolute; width: 12px; height: 12px; z-index: 3; pointer-events: none;
+}
+.sp-corner-tr { top: 6px; right: 6px; border-top: 2px solid var(--lc); border-right: 2px solid var(--lc); }
+.sp-corner-bl { bottom: 6px; left: 6px; border-bottom: 2px solid var(--lc); border-left: 2px solid var(--lc); }
+
+/* Big faint station-code watermark — always visible on the ticket. */
+.sp-decal {
+  position: absolute; right: 12px; bottom: 38px; z-index: -1;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 800;
+  font-size: 104px; line-height: 0.8; letter-spacing: -0.04em;
+  color: var(--lc); opacity: 0.07;
+  pointer-events: none; user-select: none; white-space: nowrap;
+  transition: opacity 320ms ease, font-size 320ms ease;
+}
+body.panel-big .sp-decal { opacity: 0.1; font-size: 150px; }
+
+/* Faux-barcode footer + ticket meta. */
+.sp-ticket-foot { margin-top: 16px; position: relative; z-index: 1; }
+.sp-barcode {
+  height: 30px; width: 100%;
+  background: repeating-linear-gradient(90deg,
+    #111 0, #111 1px, transparent 1px, transparent 3px,
+    #111 3px, #111 5px, transparent 5px, transparent 6px,
+    #111 6px, #111 7px, transparent 7px, transparent 10px);
+  opacity: 0.72;
+}
+.sp-ticket-meta {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-top: 6px;
+}
+.sp-ticket-admit {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.28em; text-transform: uppercase; color: rgba(10,10,10,0.5);
+}
+.sp-ticket-no {
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.18em; color: var(--lc); transition: color 400ms ease;
+}
+
+/* Drag handle — only used in the mobile bottom-sheet layout. */
+.sp-handle { display: none; }
 
 /* Resize control — a captivating pulsing pill on the panel's left edge.
    Fixed so it escapes the panel's overflow clipping and tracks its edge. */
@@ -856,10 +910,6 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   transition: transform 300ms cubic-bezier(0.77,0,0.18,1), opacity 200ms ease;
 }
 
-.sp-header-row {
-  display:flex; align-items:center; gap:10px; margin-bottom:16px;
-  padding-bottom:14px; border-bottom:1px solid var(--border);
-}
 .sp-line-info { display:flex; flex-direction:column; gap:1px; flex:1; min-width:0; }
 .sp-line-info span:first-child {
   font-family:'Noto Sans SC','Microsoft YaHei',sans-serif;
@@ -1012,17 +1062,26 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   z-index: 115;
   pointer-events: none;
   opacity: 0;
-  /* Frosted card so the line stays legible over any background scene */
+  /* Frosted "transit card" matching the boarding-pass panel: line-tinted glass,
+     a faint printed dot grid and corner brackets. */
   padding: 18px 22px 18px 18px;
-  background: rgba(245,243,238,0.8);
+  background:
+    radial-gradient(color-mix(in srgb, var(--lc) 8%, transparent) 1px, transparent 1.4px) 0 0 / 16px 16px,
+    linear-gradient(160deg, color-mix(in srgb, var(--lc) 7%, rgba(245,243,238,0.86)), rgba(245,243,238,0.8));
   backdrop-filter: blur(10px);
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--lc) 20%, var(--border));
   border-left: 3px solid var(--lc);
   box-shadow: 0 18px 44px -24px rgba(0,0,0,0.45);
   transition: opacity 500ms ease 300ms,
               transform 500ms cubic-bezier(0.22,1,0.36,1) 300ms,
               border-left-color 400ms ease;
 }
+/* Corner brackets (top-right, bottom-left) */
+#explorer-panel::before, #explorer-panel::after {
+  content: ''; position: absolute; width: 11px; height: 11px; pointer-events: none;
+}
+#explorer-panel::before { top: 6px; right: 6px; border-top: 2px solid var(--lc); border-right: 2px solid var(--lc); }
+#explorer-panel::after  { bottom: 6px; left: 6px; border-bottom: 2px solid var(--lc); border-left: 2px solid var(--lc); }
 #explorer-panel.exp-visible {
   opacity: 1;
   transform: translateY(-50%) translateX(0);
@@ -1260,29 +1319,45 @@ body.panel-open .map-fab { opacity: 1; pointer-events: auto; }
   /* Model station name — smaller, clear of the HUD */
   .model-station-name { top: 9vh; }
 
-  /* ── Stop panel → bottom sheet, docked above the timeline ── */
+  /* ── Stop panel → boarding-pass bottom sheet with a drag handle ── */
   #stop-panel {
     left: 8px; right: 8px; top: auto; bottom: 132px;   /* timeline (124px) + gap */
-    width: auto; max-height: 44vh; overflow-y: auto;
+    width: auto; max-height: 46vh; overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     transform: translateY(0);
-    padding: 16px;
+    padding: 14px 16px 16px;
     border-left: none; border-top: 3px solid var(--lc);
-    transition: transform 420ms cubic-bezier(0.22,1,0.36,1), opacity 300ms ease;
+    transition: transform 420ms cubic-bezier(0.22,1,0.36,1),
+                max-height 380ms cubic-bezier(0.22,1,0.36,1), opacity 300ms ease;
   }
   #stop-panel.sp-hidden, #stop-panel.sp-exit {
     transform: translateY(calc(100% + 140px)); opacity: 0;
   }
-  body.panel-big #stop-panel { width: auto; max-height: 62vh; }    /* enlarge = taller sheet */
+  body.panel-big     #stop-panel { width: auto; max-height: 66vh; }  /* swipe up = taller */
+  body.sheet-collapsed #stop-panel { max-height: 66px; overflow: hidden; }  /* swipe down = peek */
+
+  /* Drag handle — the grabber that sells the sheet as draggable */
+  .sp-handle {
+    display: flex; justify-content: center; align-items: center;
+    height: 16px; margin: -6px 0 8px; cursor: grab;
+  }
+  .sp-handle-bar {
+    width: 44px; height: 4px; border-radius: 2px;
+    background: color-mix(in srgb, var(--lc) 45%, rgba(0,0,0,0.22));
+  }
+
   .sp-expand { display: none; }                                    /* no side pill in sheet mode */
-  .sp-decal  { display: none; }
-  .sp-header-row { margin-bottom: 12px; padding-bottom: 10px; }
+  .sp-header-row { margin: 0 -16px 12px; padding: 11px 16px; }     /* bleed sides, sit below handle */
+  .sp-corner { display: none; }                                    /* brackets read as clutter on a sheet */
+  .sp-decal { font-size: 78px; bottom: 30px; opacity: 0.08; }
+  body.panel-big #stop-panel .sp-decal { font-size: 104px; }
   .sp-station-zh { font-size: 24px; }
   .sp-num { font-size: 40px; }
   .sp-label-zh { font-size: 24px; }
   .sp-concept-row, .sp-station-block { margin-bottom: 10px; }
   .sp-concept-row { padding-bottom: 10px; }
   .sp-desc { font-size: 12px; line-height: 1.7; margin-bottom: 12px; }
+  .sp-barcode { height: 26px; }
 
   /* Map button — top-right corner, out of the sheet's way */
   .map-fab {

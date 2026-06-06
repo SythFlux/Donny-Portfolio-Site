@@ -33,6 +33,7 @@ export function initDOMRefs() {
   els.spDesc        = document.getElementById('sp-desc');
   els.spVideo       = document.getElementById('sp-video');
   els.spDecal       = document.getElementById('sp-decal');
+  els.spTicketNo    = document.getElementById('sp-ticket-no');
   els.modelName     = document.getElementById('model-station-name');
 }
 
@@ -75,6 +76,7 @@ export function updateDOM(index, city) {
   if (els.spDesc)          els.spDesc.textContent      = item.desc;
   if (els.spVideo)         els.spVideo.dataset.stop    = item.id;
   if (els.spDecal)         els.spDecal.textContent     = item.stationCode;
+  if (els.spTicketNo)      els.spTicketNo.textContent  = item.stationCode;
 
   if (els.modelName) {
     els.modelName.style.color = item.lineColor;
