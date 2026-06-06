@@ -4,7 +4,7 @@
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { isTouch, pixelRatioCap } from './device.js';
+import { isTouch, isMobile, pixelRatioCap } from './device.js';
 
 // ── Renderer ─────────────────────────────────────────────────────────
 // antialias is disabled on touch devices — it's a costly full-screen pass and
@@ -26,8 +26,10 @@ export const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0xf0f0f4, 28, 52);
 
 // ── Camera ───────────────────────────────────────────────────────────
+// Wider FOV on mobile so more of the scene fits in a narrow portrait viewport.
+const FOV = isMobile ? 60 : 42;
 export const camera = new THREE.PerspectiveCamera(
-  42, window.innerWidth / window.innerHeight, 0.1, 200
+  FOV, window.innerWidth / window.innerHeight, 0.1, 200
 );
 camera.position.set(0, 2, 22);
 

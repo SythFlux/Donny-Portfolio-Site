@@ -17,9 +17,11 @@ export const isMobile = isTouch || window.innerWidth < 768;
 export const prefersReducedMotion =
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// Cap the render resolution. iPhones choke on 3× retina fill-rate and can drop
-// canvas tiles to white under GPU-memory pressure, so render at 1× on mobile.
-export const pixelRatioCap = isMobile ? 1 : 2;
+// Cap the render resolution. iPhones choke on 3× retina fill-rate, so clamp to
+// 1.5 on mobile — crisp enough that the dotted text doesn't shimmer, while
+// staying well under the GPU-memory pressure that caused tile white-out (the
+// real white-flicker culprit was the HUD overlay canvas, now disabled).
+export const pixelRatioCap = isMobile ? 1.5 : 2;
 
 // The actual device-pixel-ratio we render at, already clamped.
 export const dpr = Math.min(window.devicePixelRatio || 1, pixelRatioCap);
