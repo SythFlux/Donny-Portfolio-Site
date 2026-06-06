@@ -172,10 +172,14 @@ html:not([data-theme]) .tab.active {
 #page-portfolio #header { top: 38px; }
 
 /* ── Transition overlay: diagonal bar wipe ────────────────────────── */
+/* The diagonal bar-wipe transition is never triggered (no JS ever adds
+   .wipe-in / .wipe-out). Left enabled, its 5 .t-bar elements each get
+   promoted to a permanent GPU layer by `will-change: transform`, and iOS
+   Safari intermittently paints those off-screen layers WHITE at their layout
+   position (left:14% width:30% = the white bar; all 5 = the whole screen).
+   It's dead decoration, so disable it completely. */
 #page-transition {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  z-index: 500; pointer-events: none;
-  overflow: hidden;
+  display: none;
 }
 
 .t-bar {
@@ -183,7 +187,6 @@ html:not([data-theme]) .tab.active {
   top: -10%; height: 120%; width: 30%;
   background: var(--accent, #5588cc);
   transform: translateX(calc(-100vw - 100%)) skewX(-12deg);
-  will-change: transform;
 }
 /* Thin bright edge on each bar for depth */
 .t-bar::after {
