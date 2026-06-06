@@ -50,10 +50,18 @@ export class Viewer {
     });
     this.container.insertBefore(this.canvas, this.container.firstChild);
 
-    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true });
+    // Mobile / coarse-pointer devices get a cheaper pipeline: no MSAA and a
+    // capped pixel ratio (a retina phone at DPR 3 renders ~9x the pixels).
+    this.isMobile = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
+                 || window.innerWidth < 768;
+    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: !this.isMobile, alpha: true,
+      powerPreference: 'high-performance' });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.isMobile ? 1.5 : 2));
     this.renderer.setClearColor(0x000000, 0); // transparent — city canvas shows through
+
+    this._lastW = window.innerWidth;
+    this._lastH = window.innerHeight;
 
     this.scene = new THREE.Scene();
     // No background color — transparent so city scene is visible behind model
@@ -125,13 +133,21 @@ export class Viewer {
   }
 
   onResize() {
-    this.camera.aspect = window.innerWidth / window.innerHeight;
+    const w = window.innerWidth, h = window.innerHeight;
+    // Mobile browsers fire resize whenever the URL bar shows/hides — that's a
+    // pure height change. Ignore those to avoid constant canvas reallocation jank.
+    if (this.isMobile && w === this._lastW && Math.abs(h - this._lastH) < 130) return;
+    this._lastW = w; this._lastH = h;
+    this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setSize(w, h);
   }
 
   animate(time) {
     requestAnimationFrame(this.animate.bind(this));
+
+    // Don't burn GPU/CPU while the tab is backgrounded.
+    if (document.hidden) return;
 
     // Advance the direct view tween (fixed-step → consistent ~0.8s move).
     if (this.viewT < 1) {

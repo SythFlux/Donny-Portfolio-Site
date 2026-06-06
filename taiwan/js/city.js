@@ -14,16 +14,40 @@ export class CityScene {
     this.lc     = '#7c3aed';
     this.type   = 'design';
     this._s     = {};
+    // Lighter particle budgets on phones — fewer stars/rain/lights/smoke.
+    this.isMobile = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
+                 || window.innerWidth < 768;
+    this._q = this.isMobile ? 0.45 : 1;   // quality multiplier for particle counts
     this._resize();
     this._init();
-    window.addEventListener('resize', () => { this._resize(); this._init(); });
+    // Re-init only on a real width change. Mobile URL-bar show/hide fires resize
+    // with just a height delta — regenerating the whole scene there causes jank.
+    window.addEventListener('resize', () => {
+      const w = window.innerWidth;
+      const widthChanged = w !== this._lastInitW;
+      this._resize();
+      if (widthChanged) this._init();
+    });
   }
+
+  // Scale a particle count by the device quality multiplier (min 1).
+  _n(count) { return Math.max(1, Math.round(count * this._q)); }
 
   setScene(type, color) { this.type = type; this.lc = color; this._init(); }
   setColor(color)        { this.lc = color; }
 
   start() {
-    const loop = (ts) => { this._draw(ts); requestAnimationFrame(loop); };
+    // The background is subtle, so cap it at ~30fps. This roughly halves its
+    // main-thread cost, leaving more headroom for the WebGL model + a smoother
+    // custom cursor (the source of the "laggy on some browsers" reports).
+    const minDelta = 1000 / 30;
+    let last = -Infinity;
+    const loop = (ts) => {
+      requestAnimationFrame(loop);
+      if (document.hidden || ts - last < minDelta) return;
+      last = ts;
+      this._draw(ts);
+    };
     requestAnimationFrame(loop);
   }
 
@@ -31,6 +55,7 @@ export class CityScene {
     this.W  = this.canvas.width  = window.innerWidth;
     this.H  = this.canvas.height = window.innerHeight;
     this.GY = this.H - 156;
+    this._lastInitW = window.innerWidth;
   }
 
   _col(c) {
@@ -80,7 +105,7 @@ export class CityScene {
     this._s.orbit = flavour.orbit;
     // Drifting motes (kept only for the orange/mountain scene — "good as is").
     this._s.motes = this.type === 'mountain'
-      ? Array.from({ length: 16 }, () => ({
+      ? Array.from({ length: this._n(16) }, () => ({
           x: Math.random()*W, y: Math.random()*GY,
           vx: flavour.drift[0]*(0.5+Math.random()),
           vy: flavour.drift[1]*(0.5+Math.random()),
@@ -91,11 +116,11 @@ export class CityScene {
     // ── Per-theme weather / sky effects ──────────────────────────
     // purple → stars · blue → rain · green → wind-blown leaves · red → day/night
     this._s.stars  = this.type === 'design'
-      ? Array.from({ length: 70 }, () => ({ x:Math.random()*W, y:Math.random()*GY*0.62, r:0.8+Math.random()*1.7, ph:Math.random()*Math.PI*2, big:Math.random()>0.82 })) : [];
+      ? Array.from({ length: this._n(70) }, () => ({ x:Math.random()*W, y:Math.random()*GY*0.62, r:0.8+Math.random()*1.7, ph:Math.random()*Math.PI*2, big:Math.random()>0.82 })) : [];
     this._s.rain   = this.type === 'village'
-      ? Array.from({ length: 110 }, () => ({ x:Math.random()*W, y:Math.random()*GY, len:8+Math.random()*12, sp:7+Math.random()*6 })) : [];
+      ? Array.from({ length: this._n(110) }, () => ({ x:Math.random()*W, y:Math.random()*GY, len:8+Math.random()*12, sp:7+Math.random()*6 })) : [];
     this._s.leaves = this.type === 'runway'
-      ? Array.from({ length: 26 }, () => ({ x:Math.random()*W, y:Math.random()*GY, vx:0.5+Math.random()*0.9, vy:0.45+Math.random()*0.7, rot:Math.random()*Math.PI*2, spin:(Math.random()-0.5)*0.08, size:4+Math.random()*4, ph:Math.random()*Math.PI*2 })) : [];
+      ? Array.from({ length: this._n(26) }, () => ({ x:Math.random()*W, y:Math.random()*GY, vx:0.5+Math.random()*0.9, vy:0.45+Math.random()*0.7, rot:Math.random()*Math.PI*2, spin:(Math.random()-0.5)*0.08, size:4+Math.random()*4, ph:Math.random()*Math.PI*2 })) : [];
 
     if (this.type === 'design') {
       this._s.blocks = [
@@ -133,7 +158,7 @@ export class CityScene {
 
     if (this.type === 'mountain') {
       if (!this._s.cityLights) {
-        this._s.cityLights = Array.from({length:90}, () => ({
+        this._s.cityLights = Array.from({length:this._n(90)}, () => ({
           x:Math.random()*W, y:GY*.28+Math.random()*(GY*.55),
           r:.8+Math.random()*1.8, ph:Math.random()*Math.PI*2,
         }));
@@ -174,7 +199,7 @@ export class CityScene {
         { x: W*0.80, mast: 340*hs, jib: 215*hs, counter: 82*hs, sp: 0.11, dir: -1, ph: 1.9 },
       ];
       // Rising smoke from the stack.
-      this._s.smoke = Array.from({ length: 14 }, () => ({
+      this._s.smoke = Array.from({ length: this._n(14) }, () => ({
         x: W*0.205 + (Math.random()-0.5)*12,
         y: (GY - 190*hs) - Math.random()*150,
         vy: -(0.25 + Math.random()*0.35),

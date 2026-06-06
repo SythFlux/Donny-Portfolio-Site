@@ -24,7 +24,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const viewerEl = document.getElementById('viewer');
   const viewer   = new Viewer(viewerEl, config.modelUrl, config.viewDefaults, config.timelineItems);
-  await viewer.init();
+  // Load the model in the background — don't block UI wiring on the (large)
+  // download, or early taps on the menu are lost until it finishes. The viewer's
+  // camera tweens are safe to call before the mesh arrives.
+  viewer.init();
 
   const heroEl        = document.getElementById('hero-text');
   const startMenu     = document.getElementById('start-menu');

@@ -151,5 +151,30 @@ export class Timeline {
       this.activeIndex = idx;
       this.commitProgress();
     });
+
+    // ── Touch swipe (mobile) ──────────────────────────────────────
+    // Phones don't emit `wheel`, so the scroll-to-navigate flow was dead on
+    // mobile. A swipe up / left advances a stop; down / right goes back.
+    let sx = 0, sy = 0, st = 0, swiping = false;
+    window.addEventListener('touchstart', (e) => {
+      if (!this.enabled || e.touches.length !== 1) { swiping = false; return; }
+      // Don't hijack swipes that start on a scrollable overlay (Q&A etc.).
+      if (e.target.closest('#qa-view, #metro-map')) { swiping = false; return; }
+      swiping = true;
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now();
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+      if (!swiping || !this.enabled) return;
+      swiping = false;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - sx, dy = t.clientY - sy, dt = Date.now() - st;
+      const adx = Math.abs(dx), ady = Math.abs(dy);
+      // Ignore taps and slow drags; require a deliberate flick.
+      if (Math.max(adx, ady) < 45 || dt > 800) return;
+      const dir = ady >= adx ? (dy < 0 ? 1 : -1)   // vertical: up = next
+                             : (dx < 0 ? 1 : -1);  // horizontal: left = next
+      this._tryMove(dir);
+    }, { passive: true });
   }
 }
